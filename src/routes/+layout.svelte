@@ -1,6 +1,5 @@
 <script lang="ts">
     import './layout.css';
-    import TitleBar from '$lib/components/TitleBar.svelte';
     import { ModeWatcher } from 'mode-watcher';
     import favicon from '$lib/assets/favicon.png';
     import { page } from '$app/state';
@@ -18,14 +17,9 @@
 <svelte:head>
     <link rel="icon" href={favicon}/>
 </svelte:head>
-<ModeWatcher defaultMode="dark" themeColors={{ dark: '#070809', light: '#ffffff' }} />
+<ModeWatcher />
 
-<div class="zclaw-app flex h-screen w-full flex-col overflow-hidden">
-    <TitleBar/>
-    <main class="flex flex-1 overflow-hidden">
-        {@render children()}
-    </main>
-</div>
+{@render children()}
 
 <div style="display:none">
     {#each locales as locale (locale)}
