@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { showSettings } from '$lib/stores/app';
 	import { mode as darkMode, toggleMode } from 'mode-watcher';
+	import { Button } from '$lib/components/ui/button';
 
 	const appWindow = getCurrentWindow();
 
@@ -64,44 +65,66 @@
 
 	<div class="titlebar-actions">
 		<!-- 通知按钮 -->
-		<button class="action-btn" onclick={toggleNotification} title="通知">
+		<Button
+			variant="ghost"
+			size="icon"
+			class="action-btn"
+			onclick={toggleNotification}
+			title="通知"
+		>
 			<Bell size={16} />
 			{#if hasNotification}
 				<span class="notification-dot"></span>
 			{/if}
-		</button>
+		</Button>
 
 		<!-- Dark Mode 切换 -->
-		<button
-			class="action-btn theme-toggle"
+		<Button
+			variant="ghost"
+			size="icon"
+			class="action-btn"
 			onclick={toggleMode}
 			title={darkMode.current === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
 		>
-			<Sun size={16} class="icon-sun" />
-			<Moon size={16} class="icon-moon" />
-		</button>
+			<Sun size={16} class="theme-icon icon-sun" />
+			<Moon size={16} class="theme-icon icon-moon" />
+		</Button>
 
 		<!-- 设置按钮 -->
-		<button class="action-btn" onclick={openSettings} title="设置">
+		<Button variant="ghost" size="icon" class="action-btn" onclick={openSettings} title="设置">
 			<Settings size={16} />
-		</button>
+		</Button>
 
 		<div class="separator"></div>
 
 		<!-- 窗口控制 -->
-		<button class="action-btn control" onclick={minimize} title="最小化">
+		<Button
+			variant="ghost"
+			size="icon"
+			class="action-btn control"
+			onclick={minimize}
+			title="最小化"
+		>
 			<Minus size={16} />
-		</button>
-		<button
+		</Button>
+		<Button
+			variant="ghost"
+			size="icon"
 			class="action-btn control"
 			onclick={toggleMaximize}
 			title={isMaximized ? '还原' : '最大化'}
 		>
 			<Square size={12} />
-		</button>
-		<button class="action-btn control close" onclick={close} title="关闭">
+		</Button>
+		<Button
+			variant="ghost"
+			size="icon"
+			class="action-btn control close"
+			onclick={close}
+			title="关闭"
+		>
 			<X size={16} />
-		</button>
+		</Button>
 	</div>
 </div>
 
@@ -169,60 +192,58 @@
 		height: 100%;
 	}
 
-	/* Unified action button style */
-	.action-btn {
-		appearance: none;
-		padding: 0;
-		margin: 0;
-		border: none;
-		display: inline-flex;
-		justify-content: center;
-		align-items: center;
-		width: 40px;
-		height: 32px;
-		background-color: transparent;
-		color: #71717a;
-		cursor: pointer;
-		transition: all 0.15s ease;
+	/* Unified action button style using UI library Button */
+	:global(.action-btn) {
+		width: 40px !important;
+		height: 32px !important;
+		border-radius: 6px !important;
+		color: #71717a !important;
 		position: relative;
 	}
 
 	:global(html.dark) .action-btn:hover {
-		background: rgba(63, 63, 70, 0.5);
-		color: #e4e4e7;
+		background: rgba(63, 63, 70, 0.5) !important;
+		color: #e4e4e7 !important;
 	}
 
 	:global(html:not(.dark)) .action-btn:hover {
-		background: rgba(228, 228, 231, 1);
-		color: #18181b;
-	}
-
-	.action-btn:active {
-		transform: scale(0.95);
+		background: rgba(228, 228, 231, 1) !important;
+		color: #18181b !important;
 	}
 
 	/* Theme toggle icon visibility */
+	.theme-icon {
+		position: absolute;
+		transition:
+			opacity 0.2s,
+			transform 0.2s;
+	}
+
 	.icon-sun {
-		display: block;
+		opacity: 1;
+		transform: rotate(0deg);
 	}
 
 	.icon-moon {
-		display: none;
+		opacity: 0;
+		transform: rotate(-90deg);
 	}
 
 	:global(html.dark) .icon-sun {
-		display: none;
+		opacity: 0;
+		transform: rotate(90deg);
 	}
 
 	:global(html.dark) .icon-moon {
-		display: block;
+		opacity: 1;
+		transform: rotate(0deg);
 	}
 
 	/* Notification dot */
 	.notification-dot {
 		position: absolute;
-		top: 7px;
-		right: 10px;
+		top: 6px;
+		right: 8px;
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
@@ -244,13 +265,13 @@
 	}
 
 	/* Window control buttons - slightly wider */
-	.action-btn.control {
-		width: 46px;
+	:global(.action-btn.control) {
+		width: 46px !important;
 	}
 
 	/* Close button hover - red */
-	.action-btn.close:hover {
-		background: #dc2626;
-		color: white;
+	:global(.action-btn.close:hover) {
+		background: #dc2626 !important;
+		color: white !important;
 	}
 </style>
