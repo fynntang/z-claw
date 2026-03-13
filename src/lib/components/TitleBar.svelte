@@ -86,8 +86,11 @@
 			onclick={toggleMode}
 			title={darkMode.current === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
 		>
-			<Sun size={16} class="theme-icon icon-sun" />
-			<Moon size={16} class="theme-icon icon-moon" />
+            {#if darkMode.current === 'dark'}
+			    <Sun size={16} class="theme-icon icon-sun" />
+			{:else}
+			    <Moon size={16} class="theme-icon icon-moon" />
+			{/if}
 		</Button>
 
 		<!-- 设置按钮 -->
