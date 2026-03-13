@@ -202,7 +202,6 @@
 		align-items: center;
 		gap: 8px;
 		padding: 0 8px;
-		flex: 1;
 		height: 100%;
 	}
 
@@ -230,13 +229,15 @@
 		height: 100%;
 	}
 
-	/* Tab Bar */
+	/* Tab Bar - centered */
 	.tab-bar {
+		position: absolute;
+		left: 50%;
+		transform: translateX(-50%);
 		display: flex;
 		align-items: center;
 		gap: 2px;
 		height: 100%;
-		padding: 0 8px;
 	}
 
 	.tab-btn {
