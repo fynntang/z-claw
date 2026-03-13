@@ -8,8 +8,6 @@
 	} from '$lib/stores/app';
 	import {
 		Bot,
-		Code,
-		Cpu,
 		Plus,
 		Settings,
 		Hash,
@@ -25,64 +23,13 @@
 	// Tab state
 	let activeTab = $state<'agents' | 'channels' | 'tasks' | 'tools' | 'logs'>('agents');
 
-	// Mock agents
-	const mockAgents = [
-		{
-			id: '1',
-			name: '通用助手',
-			icon: Bot,
-			status: 'running' as const,
-			model: 'gpt-4o-mini',
-			version: '0.1.0',
-			skills: ['对话', '分析'],
-			channels: []
-		},
-		{
-			id: '2',
-			name: '代码助手',
-			icon: Cpu,
-			status: 'stopped' as const,
-			model: 'gpt-4o',
-			version: '0.1.0',
-			skills: ['代码', '调试'],
-			channels: []
-		},
-		{
-			id: '3',
-			name: '数据分析',
-			icon: Code,
-			status: 'stopped' as const,
-			model: 'claude-3-sonnet',
-			version: '0.1.0',
-			skills: ['数据分析', '可视化'],
-			channels: []
-		}
-	];
+	// TODO: Load from backend when agents/channels/tasks API is implemented
+	// For now, these are empty placeholders
+	// $agents and $sessions are managed by stores, initialized as empty arrays
 
-	$agents = mockAgents;
-
-	// Mock sessions
-	const mockSessions = [
-		{ id: '1', title: '系统架构分析', preview: '', time: '12:45', messages: [] },
-		{ id: '2', title: 'IM 机器人联调', preview: '', time: '昨天', messages: [] },
-		{ id: '3', title: '数据迁移方案', preview: '', time: '3天前', messages: [] }
-	];
-
-	$sessions = mockSessions;
-
-	// Mock channels
-	const mockChannels = [
-		{ id: '1', name: '# dev-ops', type: 'slack', active: true },
-		{ id: '2', name: '# alerts', type: 'slack', active: false },
-		{ id: '3', name: 'Alpha-Group', type: 'telegram', active: false }
-	];
-
-	// Mock tasks
-	const mockTasks = [
-		{ id: '1', name: '每日代码清理', time: '09:00', active: true },
-		{ id: '2', name: '周五报表导出', time: 'Paused', active: false },
-		{ id: '3', name: '周报生成', time: '18:00', active: true }
-	];
+	// Placeholder data for channels and tasks (to be replaced with backend data)
+	const channels: { id: string; name: string; type: string; active: boolean }[] = [];
+	const tasks: { id: string; name: string; time: string; active: boolean }[] = [];
 
 	function selectAgent(id: string) {
 		currentAgentId.set(id);
@@ -185,15 +132,22 @@
 					</button>
 				</div>
 				<div class="list-items">
-					{#each mockChannels as channel}
-						<div class="list-item {channel.active ? 'active' : ''}">
-							<Hash size={16} class="item-icon-simple" />
-							<div class="item-info">
-								<span class="item-name">{channel.name}</span>
-								<span class="item-meta">{channel.type}</span>
-							</div>
+					{#if channels.length === 0}
+						<div class="empty-state">
+							<span class="empty-text">暂无频道</span>
+							<span class="empty-hint">点击 + 添加 IM 频道</span>
 						</div>
-					{/each}
+					{:else}
+						{#each channels as channel}
+							<div class="list-item {channel.active ? 'active' : ''}">
+								<Hash size={16} class="item-icon-simple" />
+								<div class="item-info">
+									<span class="item-name">{channel.name}</span>
+									<span class="item-meta">{channel.type}</span>
+								</div>
+							</div>
+						{/each}
+					{/if}
 				</div>
 
 				<!-- Tasks List -->
@@ -205,15 +159,22 @@
 					</button>
 				</div>
 				<div class="list-items">
-					{#each mockTasks as task}
-						<div class="list-item {task.active ? 'active' : ''}">
-							<div class="task-status {task.active ? 'running' : ''}"></div>
-							<div class="item-info">
-								<span class="item-name">{task.name}</span>
-								<span class="item-meta">{task.time}</span>
-							</div>
+					{#if tasks.length === 0}
+						<div class="empty-state">
+							<span class="empty-text">暂无任务</span>
+							<span class="empty-hint">点击 + 添加定时任务</span>
 						</div>
-					{/each}
+					{:else}
+						{#each tasks as task}
+							<div class="list-item {task.active ? 'active' : ''}">
+								<div class="task-status {task.active ? 'running' : ''}"></div>
+								<div class="item-info">
+									<span class="item-name">{task.name}</span>
+									<span class="item-meta">{task.time}</span>
+								</div>
+							</div>
+						{/each}
+					{/if}
 				</div>
 			{/if}
 		</div>
@@ -481,6 +442,27 @@
 	.item-meta {
 		font-size: 10px;
 		color: #52525b;
+	}
+
+	/* Empty State */
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 24px 16px;
+		text-align: center;
+	}
+
+	.empty-text {
+		font-size: 12px;
+		color: #52525b;
+		margin-bottom: 4px;
+	}
+
+	.empty-hint {
+		font-size: 10px;
+		color: #3f3f46;
 	}
 
 	/* Task Status */

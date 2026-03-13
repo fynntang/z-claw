@@ -5,10 +5,10 @@
 	import { LOG_LEVELS } from '$lib/types/logs';
 
 	let logs: LogEntry[] = $state([]);
-	let loading = true;
-	let error = '';
+	let loading = $state(true);
+	let error = $state('');
 	let selectedLevel: LogLevel | '' = $state('');
-	let autoRefresh = true;
+	let autoRefresh = $state(true);
 	let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
 	onMount(async () => {
@@ -100,7 +100,7 @@
 				<input
 					type="checkbox"
 					bind:checked={autoRefresh}
-					on:change={() => {
+					onchange={() => {
 						if (autoRefresh) startAutoRefresh();
 						else stopAutoRefresh();
 					}}
@@ -109,13 +109,13 @@
 			</label>
 			<button
 				class="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-700"
-				on:click={loadLogs}
+				onclick={loadLogs}
 			>
 				刷新
 			</button>
 			<button
 				class="rounded bg-red-900/30 px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-900/50"
-				on:click={clearLogs}
+				onclick={clearLogs}
 			>
 				清空
 			</button>
@@ -128,7 +128,7 @@
 			class="rounded px-2 py-1 text-xs transition-colors {!selectedLevel
 				? 'bg-blue-600 text-white'
 				: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}"
-			on:click={() => (selectedLevel = '')}
+			onclick={() => (selectedLevel = '')}
 		>
 			全部
 		</button>
@@ -137,7 +137,7 @@
 				class="rounded px-2 py-1 text-xs transition-colors {selectedLevel === level.id
 					? 'bg-blue-600 text-white'
 					: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}"
-				on:click={() => (selectedLevel = level.id)}
+				onclick={() => (selectedLevel = level.id)}
 			>
 				{level.label}
 			</button>

@@ -5,9 +5,9 @@
 	import { TOOL_CATEGORIES } from '$lib/types/tools';
 
 	let tools: ToolInfo[] = $state([]);
-	let loading = true;
-	let error = '';
-	let selectedCategory = '';
+	let loading = $state(true);
+	let error = $state('');
+	let selectedCategory = $state('');
 
 	onMount(async () => {
 		await loadTools();
@@ -60,7 +60,7 @@
 			class="rounded px-2 py-1 text-xs transition-colors {!selectedCategory
 				? 'bg-blue-600 text-white'
 				: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}"
-			on:click={() => (selectedCategory = '')}
+			onclick={() => (selectedCategory = '')}
 		>
 			全部
 		</button>
@@ -71,7 +71,7 @@
 					class="rounded px-2 py-1 text-xs transition-colors {selectedCategory === cat.id
 						? 'bg-blue-600 text-white'
 						: 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}"
-					on:click={() => (selectedCategory = cat.id)}
+					onclick={() => (selectedCategory = cat.id)}
 				>
 					{cat.icon}
 					{cat.label}
