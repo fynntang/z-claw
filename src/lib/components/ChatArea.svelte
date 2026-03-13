@@ -74,88 +74,83 @@
     }
 </script>
 
-<main class="flex-1 flex flex-col relative z-10 bg-[#141417] overflow-hidden rounded-[20px]">
-    
-    <!-- 顶部信息栏 -->
-    <header class="h-14 border-b border-white/5 flex items-center justify-between px-6 z-30 shrink-0">
+<main class="chat-area flex-1 flex flex-col relative z-10 bg-[var(--app-surface-elevated)] overflow-hidden">
+    <header class="h-13 shrink-0 flex items-center justify-between px-5 border-b border-[var(--app-border)]">
         <div class="flex items-center gap-3">
-            <div class="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center text-sm">{activeAgent.icon}</div>
-            <span class="font-bold text-[15px] text-zinc-100 tracking-wide">{activeAgent.name}</span>
+            <div class="w-8 h-8 rounded-xl {activeAgent.color} flex items-center justify-center text-base shadow-sm">{activeAgent.icon}</div>
+            <span class="font-semibold text-[15px] text-[var(--app-text)] tracking-tight">{activeAgent.name}</span>
         </div>
-
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1">
             <button
                 onclick={() => { rightPanelTab = 'file'; showRightPanel = true; }}
-                class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none {showRightPanel && rightPanelTab === 'file' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors focus:outline-none {showRightPanel && rightPanelTab === 'file' ? 'bg-[var(--app-accent-soft)] text-[var(--app-accent)]' : 'text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'}"
             >
                 <FileText size={14} /> 文件
             </button>
             <button
                 onclick={() => { rightPanelTab = 'agent'; showRightPanel = (!showRightPanel || rightPanelTab !== 'agent'); }}
-                class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none {showRightPanel && rightPanelTab === 'agent' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors focus:outline-none {showRightPanel && rightPanelTab === 'agent' ? 'bg-[var(--app-accent-soft)] text-[var(--app-accent)]' : 'text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text-secondary)]'}"
             >
                 <User size={14} /> Agent
             </button>
         </div>
     </header>
 
-    <!-- 消息区域 -->
-    <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar flex flex-col justify-end">
+    <div class="flex-1 overflow-y-auto px-5 py-6 space-y-5 custom-scrollbar flex flex-col justify-end">
         {#if $messages.length === 0}
-            <div class="w-full h-full flex items-center justify-center text-zinc-600 text-sm italic opacity-50">
-                等待输入中...
+            <div class="chat-empty w-full flex-1 flex flex-col items-center justify-center gap-4 py-12">
+                <div class="w-14 h-14 rounded-2xl bg-[var(--app-accent-soft)] flex items-center justify-center text-2xl">{activeAgent.icon}</div>
+                <p class="text-[var(--app-text-secondary)] text-[15px]">向 {activeAgent.name} 发送第一条消息</p>
+                <p class="text-[var(--app-text-muted)] text-[13px]">支持 Enter 发送，Shift+Enter 换行</p>
             </div>
         {/if}
         {#each $messages as msg (msg.id)}
-            <div class="flex gap-4 {msg.role === 'user' ? 'flex-row-reverse' : ''}">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm shadow-md {msg.role === 'assistant' ? activeAgent.color : 'bg-orange-600 text-white'}">
+            <div class="flex gap-3 {msg.role === 'user' ? 'flex-row-reverse' : ''}">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-sm {msg.role === 'assistant' ? activeAgent.color : 'bg-[var(--app-accent)] text-[var(--app-bg)]'} shadow-sm">
                     {msg.role === 'assistant' ? activeAgent.icon : 'A'}
                 </div>
-                <div class="max-w-[80%] flex flex-col {msg.role === 'user' ? 'items-end' : ''}">
-                    <div class="rounded-[20px] p-4 text-[14px] leading-relaxed {
+                <div class="max-w-[78%] flex flex-col {msg.role === 'user' ? 'items-end' : ''}">
+                    <div class="rounded-2xl px-4 py-3 text-[14px] leading-relaxed {
                         msg.role === 'assistant'
-                        ? 'bg-[#1c1c1f] border border-white/5 text-zinc-200 shadow-xl'
-                        : 'bg-orange-600 text-white shadow-lg shadow-orange-900/20'
+                        ? 'bg-[var(--app-surface)] border border-[var(--app-border)] text-[var(--app-text)]'
+                        : 'bg-[var(--app-accent)] text-[var(--app-bg)]'
                     }">
-                        <pre class="whitespace-pre-wrap font-sans font-medium">{msg.content}</pre>
+                        <pre class="whitespace-pre-wrap font-sans">{msg.content}</pre>
                     </div>
                 </div>
             </div>
         {/each}
         {#if sending}
-            <div class="flex gap-4">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm shadow-md {activeAgent.color}">
-                    {activeAgent.icon}
-                </div>
-                <div class="rounded-[20px] px-4 py-2 text-[14px] text-zinc-500 italic">正在回复...</div>
+            <div class="flex gap-3">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-sm {activeAgent.color} shadow-sm">{activeAgent.icon}</div>
+                <div class="rounded-2xl px-4 py-2.5 text-[14px] text-[var(--app-text-muted)] italic bg-[var(--app-surface)] border border-[var(--app-border)]">正在回复...</div>
             </div>
         {/if}
     </div>
 
-    <!-- 输入框区域 -->
-    <div class="px-6 pb-6 pt-2 shrink-0 border-t border-transparent">
-        <div class="max-w-4xl mx-auto">
-            <div class="bg-[#1c1c1f] border border-white/10 rounded-[24px] p-4 py-3 shadow-2xl focus-within:border-zinc-600 transition-all flex flex-col gap-2">
+    <div class="px-5 pb-5 pt-3 shrink-0 border-t border-[var(--app-border)]">
+        <div class="max-w-3xl mx-auto">
+            <div class="chat-input-wrap rounded-2xl px-4 py-3 flex flex-col gap-2 bg-[var(--app-surface)] border border-[var(--app-border)] focus-within:border-[var(--app-border-focus)] focus-within:ring-1 focus-within:ring-[var(--app-border-focus)] transition-all">
                 <textarea
-                    class="w-full bg-transparent border-none outline-none text-[15px] resize-none placeholder:text-zinc-600 text-zinc-200"
+                    class="w-full bg-transparent border-none outline-none text-[15px] resize-none placeholder:text-[var(--app-text-muted)] text-[var(--app-text)]"
                     placeholder="给 {activeAgent.name} 发送消息..."
                     rows="2"
                     bind:value={inputText}
                     onkeydown={onTextareaKeydown}
                     disabled={sending}
                 ></textarea>
-                <div class="flex justify-between items-center mt-2">
-                    <div class="flex gap-4 px-1">
-                        <button type="button" class="text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"><Paperclip size={18}/></button>
-                        <button type="button" class="text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"><Sparkles size={18}/></button>
+                <div class="flex justify-between items-center">
+                    <div class="flex gap-1">
+                        <button type="button" class="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--app-text-muted)] hover:text-[var(--app-accent)] hover:bg-[var(--app-surface-hover)] transition-colors focus:outline-none"><Paperclip size={16}/></button>
+                        <button type="button" class="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--app-text-muted)] hover:text-[var(--app-accent)] hover:bg-[var(--app-surface-hover)] transition-colors focus:outline-none"><Sparkles size={16}/></button>
                     </div>
                     <button
                         type="button"
-                        class="flex items-center justify-center w-8 h-8 bg-zinc-700 hover:bg-zinc-600 text-white rounded-full shadow-lg transition-all active:scale-95 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--app-accent)] text-[var(--app-bg)] hover:opacity-90 transition-opacity active:scale-95 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         onclick={handleSend}
                         disabled={sending}
                     >
-                        <Send size={14} class="-ml-0.5" />
+                        <Send size={15} class="-ml-0.5" />
                     </button>
                 </div>
             </div>
@@ -164,14 +159,8 @@
 </main>
 
 <style>
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #3f3f46;
-        border-radius: 6px;
-    }
-    textarea {
-        background: transparent;
-    }
+    .chat-area { border-radius: 0; }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--app-border); border-radius: 10px; }
+    textarea { background: transparent; }
 </style>

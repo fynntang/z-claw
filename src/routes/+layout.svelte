@@ -20,7 +20,7 @@
 </svelte:head>
 <ModeWatcher defaultMode="dark" themeColors={{ dark: '#09090b', light: '#ffffff' }} />
 
-<div class="flex h-screen w-full flex-col bg-[#09090b] text-zinc-300 font-sans selection:bg-orange-500/30 overflow-hidden">
+<div class="zclaw-app flex h-screen w-full flex-col font-sans selection:bg-[var(--app-accent)]/30 overflow-hidden">
     <!-- TitleBar floats at the top of the window -->
     <TitleBar/>
     

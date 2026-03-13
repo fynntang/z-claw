@@ -1,43 +1,32 @@
 <script lang="ts">
-	import SidebarNav from '$lib/components/SidebarNav.svelte';
+	import AgentSidebar from '$lib/components/AgentSidebar.svelte';
+	import ChannelSidebar from '$lib/components/ChannelSidebar.svelte';
 	import ChatArea from '$lib/components/ChatArea.svelte';
+	import RightPanel from '$lib/components/RightPanel.svelte';
 	import SettingsPanel from '$lib/components/SettingsPanel.svelte';
+
+	let activeAgentId = $state(1);
+	let activeListItem = $state('chat-1');
+	let rightPanelTab = $state('agent');
+	let showRightPanel = $state(true);
 </script>
 
-<div class="app-container">
-	<SidebarNav />
-	<ChatArea />
+<div class="flex h-full w-full gap-3">
+	<AgentSidebar bind:activeAgentId />
+	<ChannelSidebar bind:activeListItem />
+	<div class="flex-1 flex zclaw-surface overflow-hidden relative shadow-xl min-w-0">
+		<ChatArea 
+			bind:rightPanelTab 
+			bind:showRightPanel 
+			{activeAgentId} 
+		/>
+		<RightPanel 
+			{showRightPanel} 
+			{rightPanelTab}
+			{activeAgentId}
+			onToggle={() => { showRightPanel = !showRightPanel; }}
+		/>
+	</div>
+	
 	<SettingsPanel />
 </div>
-
-<style>
-	:global(*) {
-		margin: 0;
-		padding: 0;
-		box-sizing: border-box;
-	}
-
-	:global(body) {
-		font-family:
-			'Inter',
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			Roboto,
-			sans-serif;
-		background-color: #0c0c0e;
-		color: #d4d4d8;
-		overflow: hidden;
-	}
-
-	:global(.mono) {
-		font-family: 'JetBrains Mono', monospace;
-	}
-
-	.app-container {
-		display: flex;
-		height: 100vh;
-		width: 100%;
-		overflow: hidden;
-	}
-</style>
