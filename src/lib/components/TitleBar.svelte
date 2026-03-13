@@ -4,7 +4,6 @@
 	import { onMount } from 'svelte';
 	import { showSettings } from '$lib/stores/app';
 	import { mode as darkMode, toggleMode } from 'mode-watcher';
-	import { Button } from '$lib/components/ui/button';
 
 	const appWindow = getCurrentWindow();
 
@@ -73,23 +72,14 @@
 		</button>
 
 		<!-- Dark Mode 切换 -->
-		<Button
+		<button
+			class="action-btn theme-toggle"
 			onclick={toggleMode}
-			class="action-btn"
-			variant="outline"
-			size="icon"
 			title={darkMode.current === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
 		>
-			<Sun
-				class="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 !transition-all dark:scale-0 dark:-rotate-90"
-				size={16}
-			/>
-			<Moon
-				class="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 !transition-all dark:scale-100 dark:rotate-0"
-				size={16}
-			/>
-			<span class="sr-only">Toggle theme</span>
-		</Button>
+			<Sun size={16} class="icon-sun" />
+			<Moon size={16} class="icon-moon" />
+		</button>
 
 		<!-- 设置按钮 -->
 		<button class="action-btn" onclick={openSettings} title="设置">
@@ -99,21 +89,19 @@
 		<div class="separator"></div>
 
 		<!-- 窗口控制 -->
-		<div class="titlebar-controls">
-			<button class="control-btn minimize" onclick={minimize} title="最小化">
-				<Minus size={16} />
-			</button>
-			<button
-				class="control-btn maximize"
-				onclick={toggleMaximize}
-				title={isMaximized ? '还原' : '最大化'}
-			>
-				<Square size={14} />
-			</button>
-			<button class="control-btn close" onclick={close} title="关闭">
-				<X size={16} />
-			</button>
-		</div>
+		<button class="action-btn control" onclick={minimize} title="最小化">
+			<Minus size={16} />
+		</button>
+		<button
+			class="action-btn control"
+			onclick={toggleMaximize}
+			title={isMaximized ? '还原' : '最大化'}
+		>
+			<Square size={12} />
+		</button>
+		<button class="action-btn control close" onclick={close} title="关闭">
+			<X size={16} />
+		</button>
 	</div>
 </div>
 
@@ -136,13 +124,13 @@
 			border-color 0.2s ease;
 	}
 
-	/* Dark mode - when html has 'dark' class */
+	/* Dark mode */
 	:global(html.dark) .titlebar {
 		background: linear-gradient(180deg, rgba(24, 24, 27, 0.95) 0%, rgba(18, 18, 20, 0.98) 100%);
 		border-bottom: 1px solid rgba(39, 39, 42, 0.5);
 	}
 
-	/* Light mode - when html does NOT have 'dark' class */
+	/* Light mode */
 	:global(html:not(.dark)) .titlebar {
 		background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 250, 250, 1) 100%);
 		border-bottom: 1px solid rgba(228, 228, 231, 1);
@@ -179,9 +167,9 @@
 		display: flex;
 		align-items: center;
 		height: 100%;
-		gap: 2px;
 	}
 
+	/* Unified action button style */
 	.action-btn {
 		appearance: none;
 		padding: 0;
@@ -190,13 +178,12 @@
 		display: inline-flex;
 		justify-content: center;
 		align-items: center;
-		width: 36px;
-		height: 28px;
+		width: 40px;
+		height: 32px;
 		background-color: transparent;
 		color: #71717a;
 		cursor: pointer;
 		transition: all 0.15s ease;
-		border-radius: 6px;
 		position: relative;
 	}
 
@@ -214,10 +201,28 @@
 		transform: scale(0.95);
 	}
 
+	/* Theme toggle icon visibility */
+	.icon-sun {
+		display: block;
+	}
+
+	.icon-moon {
+		display: none;
+	}
+
+	:global(html.dark) .icon-sun {
+		display: none;
+	}
+
+	:global(html.dark) .icon-moon {
+		display: block;
+	}
+
+	/* Notification dot */
 	.notification-dot {
 		position: absolute;
-		top: 6px;
-		right: 8px;
+		top: 7px;
+		right: 10px;
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
@@ -225,11 +230,12 @@
 		box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
 	}
 
+	/* Separator */
 	.separator {
 		width: 1px;
 		height: 16px;
 		background: rgba(63, 63, 70, 0.5);
-		margin: 0 6px;
+		margin: 0 4px;
 		transition: background 0.2s ease;
 	}
 
@@ -237,44 +243,14 @@
 		background: rgba(228, 228, 231, 1);
 	}
 
-	.titlebar-controls {
-		display: flex;
-		align-items: center;
-		height: 100%;
-	}
-
-	.control-btn {
-		appearance: none;
-		padding: 0;
-		margin: 0;
-		border: none;
-		display: inline-flex;
-		justify-content: center;
-		align-items: center;
+	/* Window control buttons - slightly wider */
+	.action-btn.control {
 		width: 46px;
-		height: 32px;
-		background-color: transparent;
-		color: #71717a;
-		cursor: pointer;
-		transition: all 0.15s ease;
 	}
 
-	:global(html.dark) .control-btn:hover {
-		background: rgba(63, 63, 70, 0.5);
-		color: #e4e4e7;
-	}
-
-	:global(html:not(.dark)) .control-btn:hover {
-		background: rgba(228, 228, 231, 1);
-		color: #18181b;
-	}
-
-	.control-btn.close:hover {
+	/* Close button hover - red */
+	.action-btn.close:hover {
 		background: #dc2626;
 		color: white;
-	}
-
-	.control-btn:active {
-		transform: scale(0.95);
 	}
 </style>

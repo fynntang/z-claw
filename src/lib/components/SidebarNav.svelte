@@ -29,21 +29,30 @@
 			name: '通用助手',
 			icon: Bot,
 			status: 'running' as const,
-			model: 'gpt-4o-mini'
+			model: 'gpt-4o-mini',
+			version: '0.1.0',
+			skills: ['对话', '分析'],
+			channels: []
 		},
 		{
 			id: '2',
 			name: '代码助手',
 			icon: Cpu,
 			status: 'stopped' as const,
-			model: 'gpt-4o'
+			model: 'gpt-4o',
+			version: '0.1.0',
+			skills: ['代码', '调试'],
+			channels: []
 		},
 		{
 			id: '3',
 			name: '数据分析',
 			icon: Code,
 			status: 'stopped' as const,
-			model: 'claude-3-sonnet'
+			model: 'claude-3-sonnet',
+			version: '0.1.0',
+			skills: ['数据分析', '可视化'],
+			channels: []
 		}
 	];
 
