@@ -1,17 +1,19 @@
 [workspace]
-members = ["src-tauri"]
+members = ["crates/*", "src-tauri"]
+exclude = ["crates/zeroclaw"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.0.1"
 description = ""
-repository = ""
-authors = [""]
-license=""
+repository = "https://github.com/z-claw/z-claw.git"
+authors = ["Fynn Tang <fzpying@gmail.com>"]
+license = "Apache-2.0 OR MIT"
 edition = "2024"
 
 
 [workspace.dependencies]
+zeroclaw = { path = "crates/zeroclaw" }
+
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
