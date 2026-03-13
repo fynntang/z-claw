@@ -14,9 +14,6 @@ importers:
       '@tauri-apps/plugin-opener':
         specifier: ^2.5.3
         version: 2.5.3
-      svelte-local-storage-store:
-        specifier: ^0.6.4
-        version: 0.6.4(svelte@5.53.11)
     devDependencies:
       '@eslint/compat':
         specifier: ^2.0.3
@@ -2007,12 +2004,6 @@ packages:
       svelte:
         optional: true
 
-  svelte-local-storage-store@0.6.4:
-    resolution: {integrity: sha512-45WoY2vSGPQM1sIQJ9jTkPPj20hYeqm+af6mUGRFSPP5WglZf36YYoZqwmZZ8Dt/2SU8lem+BTA8/Z/8TkqNLg==}
-    engines: {node: '>=0.14'}
-    peerDependencies:
-      svelte: ^3.48.0 || >4.0.0
-
   svelte-sonner@1.1.0:
     resolution: {integrity: sha512-3lYM6ZIqWe+p9vwwWHGWP/ZdvHiUtzURsud2quIxivrX4rvpXh6i+geBGn0m3JS6KwW6W8VgbOl3xQMcDuh6gg==}
     peerDependencies:
@@ -3901,10 +3892,6 @@ snapshots:
       postcss-selector-parser: 7.1.1
       semver: 7.7.4
     optionalDependencies:
-      svelte: 5.53.11
-
-  svelte-local-storage-store@0.6.4(svelte@5.53.11):
-    dependencies:
       svelte: 5.53.11
 
   svelte-sonner@1.1.0(svelte@5.53.11):
