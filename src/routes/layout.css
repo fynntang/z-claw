@@ -11,28 +11,30 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ---- ZClaw AI Agent 设计系统 (现代 / 克制) ---- */
+/* ---- ZClaw 设计系统 (frontend-design: editorial + 单一强调色) ---- */
 :root {
     --app-font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --app-font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
-    --app-bg: #0a0a0c;
-    --app-bg-mesh: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(34, 211, 238, 0.06), transparent),
-        radial-gradient(ellipse 60% 50% at 100% 50%, rgba(99, 102, 241, 0.04), transparent),
-        radial-gradient(ellipse 60% 50% at 0% 50%, rgba(34, 211, 238, 0.04), transparent);
-    --app-surface: #111113;
-    --app-surface-elevated: #18181b;
-    --app-surface-hover: rgba(255, 255, 255, 0.04);
-    --app-accent: #22d3ee;
-    --app-accent-muted: rgba(34, 211, 238, 0.15);
-    --app-accent-soft: rgba(34, 211, 238, 0.08);
-    --app-text: #fafafa;
-    --app-text-secondary: #a1a1aa;
-    --app-text-muted: #71717a;
-    --app-border: rgba(255, 255, 255, 0.06);
-    --app-border-focus: rgba(34, 211, 238, 0.4);
-    --app-radius: 0.75rem;
-    --app-radius-lg: 1rem;
-    --app-radius-xl: 1.25rem;
+    --app-bg: #070809;
+    --app-bg-top: #0a0b0c;
+    --app-panel: #0d0e10;
+    --app-surface: #121316;
+    --app-surface-elevated: #181a1d;
+    --app-surface-hover: rgba(255, 255, 255, 0.06);
+    --app-accent: #e85d4c;
+    --app-accent-dim: rgba(232, 93, 76, 0.18);
+    --app-accent-soft: rgba(232, 93, 76, 0.12);
+    --app-border-focus: rgba(232, 93, 76, 0.45);
+    --app-text: #f4f4f5;
+    --app-text-secondary: #9ca3af;
+    --app-text-muted: #6b7280;
+    --app-divider: rgba(255, 255, 255, 0.07);
+    --app-border: rgba(255, 255, 255, 0.07);
+    --app-radius: 10px;
+    --app-radius-sm: 6px;
+    --app-space: 16px;
+    --app-space-sm: 12px;
+    --app-space-lg: 24px;
 }
 
 :root {
@@ -164,12 +166,12 @@
 
 .dark {
     --bg: var(--app-bg);
-    --bg-secondary: var(--app-surface);
+    --bg-secondary: var(--app-panel);
     --text: var(--app-text);
     --text-muted: var(--app-text-muted);
     --accent: var(--app-accent);
-    --accent-hover: #06b6d4;
-    --border: var(--app-border);
+    --accent-hover: #d97706;
+    --border: var(--app-divider);
 }
 
 * {
@@ -190,36 +192,24 @@ body {
     color: var(--text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-size: 15px;
+    line-height: 1.5;
 }
 
 .mono {
     font-family: var(--app-font-mono);
 }
 
-/* ZClaw 主容器：深色底 + 极弱渐变氛围 */
+/* 主容器：深色 + 自上而下微渐变（景深） */
 .zclaw-app {
-    background-color: var(--app-bg);
-    background-image: var(--app-bg-mesh);
+    background: linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg) 100%);
     color: var(--app-text);
 }
 
-/* 表面卡片（侧栏、主聊天气泡容器） */
-.zclaw-surface {
-    background-color: var(--app-surface);
-    border: 1px solid var(--app-border);
-    border-radius: var(--app-radius-lg);
-}
-
-.zclaw-surface-elevated {
-    background-color: var(--app-surface-elevated);
-    border: 1px solid var(--app-border);
-    border-radius: var(--app-radius-lg);
-}
-
-/* Custom scrollbar */
+/* 滚动条 */
 ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -227,8 +217,8 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--app-border);
-    border-radius: 10px;
+    background: var(--app-divider);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

@@ -5,9 +5,9 @@
 
     const agents = [
         { id: 1, color: 'bg-blue-600', name: '苏东坡', icon: '🤖', description: 'AI coworker agent' },
-        { id: 2, color: 'bg-red-800', name: '李白', icon: '🍷', description: '创意写作专家' },
-        { id: 3, color: 'bg-orange-600', name: '杜甫', icon: '✍️', description: '逻辑分析助手' },
-        { id: 4, color: 'bg-emerald-700', name: '王维', icon: '🌿', description: '视觉艺术顾问' },
+        { id: 2, color: 'bg-rose-600', name: '李白', icon: '🍷', description: '创意写作专家' },
+        { id: 3, color: 'bg-amber-600', name: '杜甫', icon: '✍️', description: '逻辑分析助手' },
+        { id: 4, color: 'bg-emerald-600', name: '王维', icon: '🌿', description: '视觉艺术顾问' },
     ];
 
     let activeAgent = $derived(agents.find(a => a.id === activeAgentId) || agents[0]);
@@ -19,7 +19,7 @@
 </script>
 
 <aside
-    class="right-panel flex flex-col transition-all duration-300 ease-in-out overflow-hidden h-full shrink-0 z-20 bg-[var(--app-surface)] border-l border-[var(--app-border)]"
+    class="right-panel flex flex-col transition-all duration-300 ease-in-out overflow-hidden h-full shrink-0 z-20 bg-[var(--app-surface)] border-l border-[var(--app-divider)]"
     style="width: {showRightPanel ? '300px' : '0'}; opacity: {showRightPanel ? '1' : '0'};"
 >
     <div class="w-[300px] flex flex-col h-full shrink-0 px-4 pt-6 pb-4">
@@ -37,14 +37,14 @@
             <div class="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-6">
                 <section>
                     <h3 class="text-[12px] font-semibold text-[var(--app-text-muted)] uppercase tracking-wider mb-2">关于我</h3>
-                    <div class="rounded-xl p-3.5 text-[13px] leading-relaxed text-[var(--app-text-secondary)] space-y-1.5 bg-[var(--app-surface-elevated)] border border-[var(--app-border)]">
+                    <div class="rounded-xl p-3.5 text-[13px] leading-relaxed text-[var(--app-text-secondary)] space-y-1.5 bg-[var(--app-surface-elevated)] border border-[var(--app-divider)]">
                         <div class="flex gap-2">生日: <span class="text-[var(--app-text)]">2026.03.01</span></div>
                         <div class="flex gap-2">风格: <span class="text-[var(--app-text)] leading-tight">sharp, resourceful, no-nonsense</span></div>
                     </div>
                 </section>
                 <section>
                     <h3 class="text-[12px] font-semibold text-[var(--app-text-muted)] uppercase tracking-wider mb-2">我眼中的你</h3>
-                    <div class="rounded-xl p-3.5 text-[13px] leading-relaxed text-[var(--app-text-secondary)] space-y-1.5 bg-[var(--app-surface-elevated)] border border-[var(--app-border)]">
+                    <div class="rounded-xl p-3.5 text-[13px] leading-relaxed text-[var(--app-text-secondary)] space-y-1.5 bg-[var(--app-surface-elevated)] border border-[var(--app-divider)]">
                         <div class="flex justify-between items-center">姓名: <span class="text-[var(--app-text)]">六哥</span></div>
                         <div class="flex justify-between items-center">称呼: <span class="text-[var(--app-text)]">主人</span></div>
                         <div class="flex justify-between items-center">时区: <span class="text-[var(--app-text)]">Asia/Shanghai</span></div>
@@ -53,7 +53,7 @@
                 </section>
                 <section>
                     <h3 class="text-[12px] font-semibold text-[var(--app-text-muted)] uppercase tracking-wider mb-2">我的笔记</h3>
-                    <div class="rounded-xl p-3.5 text-[13px] leading-relaxed text-[var(--app-text-secondary)] space-y-2 min-h-[80px] bg-[var(--app-surface-elevated)] border border-[var(--app-border)]">
+                    <div class="rounded-xl p-3.5 text-[13px] leading-relaxed text-[var(--app-text-secondary)] space-y-2 min-h-[80px] bg-[var(--app-surface-elevated)] border border-[var(--app-divider)]">
                         <div>当前项目: </div>
                         <div>工作流: </div>
                         <div>记忆系统: </div>
@@ -71,13 +71,13 @@
                     <input
                         type="text"
                         placeholder="搜索文档..."
-                        class="w-full bg-[var(--app-surface-elevated)] border border-[var(--app-border)] rounded-xl py-2 pl-9 pr-4 text-[13px] outline-none focus:border-[var(--app-border-focus)] transition-colors text-[var(--app-text)] placeholder:text-[var(--app-text-muted)]"
+                        class="w-full bg-[var(--app-surface-elevated)] border border-[var(--app-divider)] rounded-xl py-2 pl-9 pr-4 text-[13px] outline-none focus:border-[var(--app-border-focus)] focus:ring-1 focus:ring-[var(--app-border-focus)] transition-colors text-[var(--app-text)] placeholder:text-[var(--app-text-muted)]"
                     />
                 </div>
 
                 <div class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
                     {#each mockFiles as file (file.name)}
-                        <div class="group rounded-xl p-3 border border-[var(--app-border)] hover:bg-[var(--app-surface-hover)] transition-colors cursor-pointer">
+                        <div class="group rounded-xl p-3 border border-[var(--app-divider)] hover:bg-[var(--app-surface-hover)] transition-colors cursor-pointer">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-lg bg-[var(--app-surface-elevated)] flex items-center justify-center text-[var(--app-text-muted)] shrink-0">
                                     {#if file.type === 'doc'}
@@ -101,7 +101,7 @@
                         </div>
                     {/each}
 
-                    <button class="w-full mt-3 py-3 border border-dashed border-[var(--app-border)] rounded-xl flex items-center justify-center gap-2 text-[13px] text-[var(--app-text-muted)] hover:bg-[var(--app-accent-soft)] hover:border-[var(--app-accent)]/30 hover:text-[var(--app-accent)] transition-all focus:outline-none">
+                    <button class="w-full mt-3 py-3 border border-dashed border-[var(--app-divider)] rounded-xl flex items-center justify-center gap-2 text-[13px] text-[var(--app-text-muted)] hover:bg-[var(--app-accent-soft)] hover:border-[var(--app-accent)]/30 hover:text-[var(--app-accent)] transition-colors duration-200 focus:outline-none">
                         <Plus size={14}/> 上传新文件
                     </button>
                 </div>
@@ -116,5 +116,5 @@
 
 <style>
     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--app-border); border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--app-divider); border-radius: 4px; }
 </style>

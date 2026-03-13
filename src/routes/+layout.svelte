@@ -18,14 +18,11 @@
 <svelte:head>
     <link rel="icon" href={favicon}/>
 </svelte:head>
-<ModeWatcher defaultMode="dark" themeColors={{ dark: '#09090b', light: '#ffffff' }} />
+<ModeWatcher defaultMode="dark" themeColors={{ dark: '#070809', light: '#ffffff' }} />
 
-<div class="zclaw-app flex h-screen w-full flex-col font-sans selection:bg-[var(--app-accent)]/30 overflow-hidden">
-    <!-- TitleBar floats at the top of the window -->
+<div class="zclaw-app flex h-screen w-full flex-col overflow-hidden">
     <TitleBar/>
-    
-    <!-- Unified padding container for the inner content -->
-    <main class="flex flex-1 overflow-hidden px-3 pb-3">
+    <main class="flex flex-1 overflow-hidden">
         {@render children()}
     </main>
 </div>
