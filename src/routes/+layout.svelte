@@ -1,44 +1,37 @@
 <script lang="ts">
     import './layout.css';
     import TitleBar from '$lib/components/TitleBar.svelte';
-    import {ModeWatcher} from 'mode-watcher';
-    import favicon from "$lib/assets/favicon.png";
-    import {page} from "$app/state";
-    import {locales, localizeHref} from '$lib/paraglide/runtime';
+    import { ModeWatcher } from 'mode-watcher';
+    import favicon from '$lib/assets/favicon.png';
+    import { page } from '$app/state';
+    import { locales, localizeHref } from '$lib/paraglide/runtime';
+    import { onMount } from 'svelte';
+    import { loadConfig } from '$lib/stores/app';
 
+    const { children } = $props();
 
-    const {children} = $props();
+    onMount(() => {
+        loadConfig();
+    });
 </script>
 
 <svelte:head>
     <link rel="icon" href={favicon}/>
 </svelte:head>
-<ModeWatcher/>
+<ModeWatcher defaultMode="dark" themeColors={{ dark: '#09090b', light: '#ffffff' }} />
 
-<div class="app-wrapper">
+<div class="flex h-screen w-full flex-col bg-[#09090b] text-zinc-300 font-sans selection:bg-orange-500/30 overflow-hidden">
+    <!-- TitleBar floats at the top of the window -->
     <TitleBar/>
-    <main class="app-content">
+    
+    <!-- Unified padding container for the inner content -->
+    <main class="flex flex-1 overflow-hidden px-3 pb-3">
         {@render children()}
     </main>
 </div>
+
 <div style="display:none">
-    {#each locales as locale}
+    {#each locales as locale (locale)}
         <a href={localizeHref(page.url.pathname, { locale })}>{locale}</a>
     {/each}
 </div>
-
-<style>
-    .app-wrapper {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        width: 100%;
-        overflow: hidden;
-    }
-
-    .app-content {
-        flex: 1;
-        margin-top: 32px; /* TitleBar height */
-        overflow: hidden;
-    }
-</style>

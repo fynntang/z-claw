@@ -1,645 +1,177 @@
 <script lang="ts">
-	import { messages, showAgentInfo, config, currentSessionId } from '$lib/stores/app';
-	import { invoke } from '@tauri-apps/api/core';
-	import { Icon } from '@lucide/svelte';
-	import { generateId, getCurrentTime, type Message } from '$lib/stores/app';
+    import { FileText, User, Paperclip, Sparkles, Send } from '@lucide/svelte';
+    import {
+        messages,
+        currentSessionId,
+        sendChat,
+        generateId,
+        getCurrentTime
+    } from '$lib/stores/app';
 
-	let input = $state('');
-	let loading = $state(false);
-	let cpuValue = $state('--');
-	let memValue = $state('--');
+    let {
+        activeAgentId = 1,
+        rightPanelTab = $bindable('agent'),
+        showRightPanel = $bindable(true)
+    } = $props();
 
-	// Simulate resource monitoring
-	$effect(() => {
-		const interval = setInterval(() => {
-			cpuValue = (Math.random() * 15 + 3).toFixed(1);
-			memValue = Math.floor(Math.random() * 40 + 50).toString();
-		}, 3000);
-		return () => clearInterval(interval);
-	});
+    const agents = [
+        { id: 1, color: 'bg-blue-600', name: '苏东坡', icon: '🤖', description: 'AI coworker agent' },
+        { id: 2, color: 'bg-red-800', name: '李白', icon: '🍷', description: '创意写作专家' },
+        { id: 3, color: 'bg-orange-600', name: '杜甫', icon: '✍️', description: '逻辑分析助手' },
+        { id: 4, color: 'bg-emerald-700', name: '王维', icon: '🌿', description: '视觉艺术顾问' },
+    ];
 
-	// Initial message
-	$effect(() => {
-		if ($messages.length === 0) {
-			$messages = [
-				{
-					id: generateId(),
-					role: 'assistant',
-					content:
-						'您好，我是 ZClaw。当前已为您加载 [通用助手] 核心。请配置您的 API Key 开始对话。',
-					time: getCurrentTime()
-				}
-			];
-		}
-	});
+    let activeAgent = $derived(agents.find((a) => a.id === activeAgentId) || agents[0]);
+    let inputText = $state('');
+    let sending = $state(false);
 
-	async function sendMessage() {
-		const text = input.trim();
-		if (!text || loading) return;
+    /** 发送消息：追加用户消息、调用 Tauri chat、追加助手回复或错误 */
+    async function handleSend() {
+        const text = inputText.trim();
+        if (!text || sending) return;
 
-		input = '';
+        const userMsg = {
+            id: generateId(),
+            role: 'user' as const,
+            content: text,
+            time: getCurrentTime()
+        };
+        messages.update((m) => [...m, userMsg]);
+        inputText = '';
+        sending = true;
 
-		// Add user message
-		const userMsg: Message = {
-			id: generateId(),
-			role: 'user',
-			content: text,
-			time: getCurrentTime()
-		};
-		$messages = [...$messages, userMsg];
-		loading = true;
+        try {
+            const res = await sendChat(text);
+            if (res.session_id) currentSessionId.set(res.session_id);
+            const content = res.success
+                ? res.content
+                : `错误: ${res.error ?? '请求失败'}`;
+            const assistantMsg = {
+                id: generateId(),
+                role: 'assistant' as const,
+                content,
+                time: getCurrentTime()
+            };
+            messages.update((m) => [...m, assistantMsg]);
+        } catch (e) {
+            const errMsg = {
+                id: generateId(),
+                role: 'assistant' as const,
+                content: `请求异常: ${e}`,
+                time: getCurrentTime()
+            };
+            messages.update((m) => [...m, errMsg]);
+        } finally {
+            sending = false;
+        }
+    }
 
-		try {
-			const response = await invoke<{
-				content: string;
-				success: boolean;
-				error?: string;
-				session_id?: string;
-			}>('chat', {
-				message: text,
-				sessionId: $currentSessionId || null,
-				apiKey: $config.apiKey || null,
-				apiUrl: $config.apiUrl || null,
-				model: $config.model || null,
-				provider: $config.provider || null
-			});
-
-			if (response.session_id && !$currentSessionId) {
-				currentSessionId.set(response.session_id);
-			}
-
-			const assistantMsg: Message = {
-				id: generateId(),
-				role: 'assistant',
-				content: response.success ? response.content : `错误: ${response.error}`,
-				time: getCurrentTime()
-			};
-			$messages = [...$messages, assistantMsg];
-		} catch (e) {
-			const errorMsg: Message = {
-				id: generateId(),
-				role: 'assistant',
-				content: `请求失败: ${e}`,
-				time: getCurrentTime()
-			};
-			$messages = [...$messages, errorMsg];
-		} finally {
-			loading = false;
-		}
-	}
-
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter' && !e.shiftKey) {
-			e.preventDefault();
-			sendMessage();
-		}
-	}
-
-	function scrollToBottom(el: HTMLElement) {
-		el.scrollTop = el.scrollHeight;
-	}
+    function onTextareaKeydown(e: KeyboardEvent) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    }
 </script>
 
-<main class="chat-main">
-	<!-- Header -->
-	<header class="chat-header">
-		<div class="agent-info">
-			<div class="agent-avatar">
-				<Icon name="bot" size={20} />
-			</div>
-			<div class="agent-details">
-				<div class="agent-name">通用助手</div>
-				<div class="agent-status">v0.1.0 · {loading ? '思考中...' : '就绪'}</div>
-			</div>
-		</div>
+<main class="flex-1 flex flex-col relative z-10 bg-[#141417] overflow-hidden rounded-[20px]">
+    
+    <!-- 顶部信息栏 -->
+    <header class="h-14 border-b border-white/5 flex items-center justify-between px-6 z-30 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center text-sm">{activeAgent.icon}</div>
+            <span class="font-bold text-[15px] text-zinc-100 tracking-wide">{activeAgent.name}</span>
+        </div>
 
-		<div class="header-actions">
-			<div class="resource-stats">
-				<span><Icon name="cpu" size={12} /> {cpuValue}%</span>
-				<span><Icon name="database" size={12} /> {memValue}MB</span>
-			</div>
-			<div class="divider"></div>
-			<button class="detail-btn" onclick={() => showAgentInfo.set(!$showAgentInfo)}>
-				<Icon name="info" size={14} />
-				Agent 详情
-			</button>
-		</div>
-	</header>
+        <div class="flex items-center gap-2">
+            <button
+                onclick={() => { rightPanelTab = 'file'; showRightPanel = true; }}
+                class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none {showRightPanel && rightPanelTab === 'file' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}"
+            >
+                <FileText size={14} /> 文件
+            </button>
+            <button
+                onclick={() => { rightPanelTab = 'agent'; showRightPanel = (!showRightPanel || rightPanelTab !== 'agent'); }}
+                class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all focus:outline-none {showRightPanel && rightPanelTab === 'agent' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}"
+            >
+                <User size={14} /> Agent
+            </button>
+        </div>
+    </header>
 
-	<!-- Messages -->
-	<div class="messages-container" use:scrollToBottom>
-		{#each $messages as msg}
-			<div class="message {msg.role}">
-				<div class="message-avatar {msg.role}">
-					<Icon name={msg.role === 'user' ? 'user' : 'bot'} size={16} />
-				</div>
-				<div class="message-body">
-					<div class="message-content {msg.role}">
-						{msg.content}
-					</div>
-					<div class="message-time">{msg.time}</div>
-				</div>
-			</div>
-		{/each}
+    <!-- 消息区域 -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar flex flex-col justify-end">
+        {#if $messages.length === 0}
+            <div class="w-full h-full flex items-center justify-center text-zinc-600 text-sm italic opacity-50">
+                等待输入中...
+            </div>
+        {/if}
+        {#each $messages as msg (msg.id)}
+            <div class="flex gap-4 {msg.role === 'user' ? 'flex-row-reverse' : ''}">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm shadow-md {msg.role === 'assistant' ? activeAgent.color : 'bg-orange-600 text-white'}">
+                    {msg.role === 'assistant' ? activeAgent.icon : 'A'}
+                </div>
+                <div class="max-w-[80%] flex flex-col {msg.role === 'user' ? 'items-end' : ''}">
+                    <div class="rounded-[20px] p-4 text-[14px] leading-relaxed {
+                        msg.role === 'assistant'
+                        ? 'bg-[#1c1c1f] border border-white/5 text-zinc-200 shadow-xl'
+                        : 'bg-orange-600 text-white shadow-lg shadow-orange-900/20'
+                    }">
+                        <pre class="whitespace-pre-wrap font-sans font-medium">{msg.content}</pre>
+                    </div>
+                </div>
+            </div>
+        {/each}
+        {#if sending}
+            <div class="flex gap-4">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm shadow-md {activeAgent.color}">
+                    {activeAgent.icon}
+                </div>
+                <div class="rounded-[20px] px-4 py-2 text-[14px] text-zinc-500 italic">正在回复...</div>
+            </div>
+        {/if}
+    </div>
 
-		{#if loading}
-			<div class="message assistant">
-				<div class="message-avatar assistant">
-					<Icon name="bot" size={16} />
-				</div>
-				<div class="message-body">
-					<div class="message-content assistant loading">
-						<span class="dot"></span>
-						<span class="dot"></span>
-						<span class="dot"></span>
-					</div>
-				</div>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Agent Info Card -->
-	{#if $showAgentInfo}
-		<div class="agent-card">
-			<div class="agent-card-header">
-				<div class="agent-card-avatar">
-					<Icon name="bot" size={28} />
-				</div>
-				<div>
-					<h3>通用助手</h3>
-					<p>轻量级 AI 助手</p>
-				</div>
-			</div>
-			<div class="agent-card-skills">
-				<div class="skills-label">核心技能</div>
-				<div class="skills-list">
-					<span class="skill blue">对话</span>
-					<span class="skill purple">分析</span>
-					<span class="skill green">代码</span>
-				</div>
-			</div>
-			<div class="agent-card-info">
-				<div class="info-row">
-					<span>运行环境</span>
-					<span>Local (ZClaw)</span>
-				</div>
-				<div class="info-row">
-					<span>当前模型</span>
-					<span>{$config.model || '未配置'}</span>
-				</div>
-			</div>
-		</div>
-	{/if}
-
-	<!-- Input -->
-	<div class="input-container">
-		<div class="input-box">
-			<textarea
-				bind:value={input}
-				onkeydown={handleKeydown}
-				placeholder="发送指令或询问 ZClaw..."
-				rows="1"
-				disabled={loading}
-			></textarea>
-
-			<div class="input-actions">
-				<div class="input-tools">
-					<button><Icon name="zap" size={14} /></button>
-					<button><Icon name="paperclip" size={14} /></button>
-					<div class="tool-divider"></div>
-					<span class="status-text">MCP: Ready</span>
-				</div>
-				<button class="send-btn" onclick={sendMessage} disabled={loading || !input.trim()}>
-					<span>发送</span>
-					<Icon name="send" size={14} />
-				</button>
-			</div>
-		</div>
-	</div>
+    <!-- 输入框区域 -->
+    <div class="px-6 pb-6 pt-2 shrink-0 border-t border-transparent">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-[#1c1c1f] border border-white/10 rounded-[24px] p-4 py-3 shadow-2xl focus-within:border-zinc-600 transition-all flex flex-col gap-2">
+                <textarea
+                    class="w-full bg-transparent border-none outline-none text-[15px] resize-none placeholder:text-zinc-600 text-zinc-200"
+                    placeholder="给 {activeAgent.name} 发送消息..."
+                    rows="2"
+                    bind:value={inputText}
+                    onkeydown={onTextareaKeydown}
+                    disabled={sending}
+                ></textarea>
+                <div class="flex justify-between items-center mt-2">
+                    <div class="flex gap-4 px-1">
+                        <button type="button" class="text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"><Paperclip size={18}/></button>
+                        <button type="button" class="text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"><Sparkles size={18}/></button>
+                    </div>
+                    <button
+                        type="button"
+                        class="flex items-center justify-center w-8 h-8 bg-zinc-700 hover:bg-zinc-600 text-white rounded-full shadow-lg transition-all active:scale-95 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        onclick={handleSend}
+                        disabled={sending}
+                    >
+                        <Send size={14} class="-ml-0.5" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 
 <style>
-	.chat-main {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		position: relative;
-		background: #09090b;
-	}
-
-	.chat-header {
-		height: 56px;
-		border-bottom: 1px solid rgba(39, 39, 42, 0.5);
-		padding: 0 24px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		background: rgba(0, 0, 0, 0.2);
-		backdrop-filter: blur(12px);
-	}
-
-	.agent-info {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.agent-avatar {
-		width: 32px;
-		height: 32px;
-		border-radius: 8px;
-		background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: white;
-		box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-	}
-
-	.agent-name {
-		font-size: 12px;
-		font-weight: bold;
-		color: white;
-	}
-
-	.agent-status {
-		font-size: 10px;
-		color: #71717a;
-		margin-top: 2px;
-	}
-
-	.header-actions {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-	}
-
-	.resource-stats {
-		display: flex;
-		gap: 16px;
-		font-size: 10px;
-		font-family: 'JetBrains Mono', monospace;
-		color: #52525b;
-	}
-
-	.resource-stats span {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
-	.divider {
-		width: 1px;
-		height: 16px;
-		background: #27272a;
-	}
-
-	.detail-btn {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 6px 12px;
-		border-radius: 8px;
-		background: rgba(24, 24, 27, 0.5);
-		border: 1px solid #27272a;
-		color: #71717a;
-		font-size: 12px;
-		cursor: pointer;
-		transition: all 0.15s;
-	}
-
-	.detail-btn:hover {
-		color: white;
-	}
-
-	.messages-container {
-		flex: 1;
-		overflow-y: auto;
-		padding: 32px;
-		display: flex;
-		flex-direction: column;
-		gap: 32px;
-	}
-
-	.messages-container::-webkit-scrollbar {
-		width: 4px;
-	}
-
-	.messages-container::-webkit-scrollbar-thumb {
-		background: #27272a;
-		border-radius: 10px;
-	}
-
-	.message {
-		display: flex;
-		gap: 16px;
-		align-items: flex-start;
-	}
-
-	.message.user {
-		flex-direction: row-reverse;
-	}
-
-	.message-avatar {
-		width: 32px;
-		height: 32px;
-		border-radius: 8px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-	}
-
-	.message-avatar.user {
-		background: #27272a;
-		border: 1px solid #3f3f46;
-		color: #71717a;
-	}
-
-	.message-avatar.assistant {
-		background: rgba(37, 99, 235, 0.1);
-		border: 1px solid rgba(59, 130, 246, 0.2);
-		color: #60a5fa;
-	}
-
-	.message-body {
-		max-width: 75%;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.message.user .message-body {
-		align-items: flex-end;
-	}
-
-	.message-content {
-		padding: 12px 16px;
-		border-radius: 16px;
-		font-size: 14px;
-		line-height: 1.6;
-		white-space: pre-wrap;
-	}
-
-	.message-content.user {
-		background: #2563eb;
-		color: white;
-		box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-	}
-
-	.message-content.assistant {
-		background: rgba(24, 24, 27, 0.5);
-		border: 1px solid #27272a;
-		color: #e4e4e7;
-	}
-
-	.message-content.loading {
-		display: flex;
-		gap: 4px;
-		padding: 16px;
-	}
-
-	.dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: #52525b;
-		animation: bounce 1.4s infinite ease-in-out both;
-	}
-
-	.dot:nth-child(1) {
-		animation-delay: -0.32s;
-	}
-	.dot:nth-child(2) {
-		animation-delay: -0.16s;
-	}
-
-	@keyframes bounce {
-		0%,
-		80%,
-		100% {
-			transform: scale(0);
-		}
-		40% {
-			transform: scale(1);
-		}
-	}
-
-	.message-time {
-		font-size: 10px;
-		color: #3f3f46;
-		padding: 0 4px;
-	}
-
-	.agent-card {
-		position: absolute;
-		right: 24px;
-		top: 64px;
-		width: 320px;
-		background: rgba(12, 12, 14, 0.9);
-		backdrop-filter: blur(12px);
-		border: 1px solid #27272a;
-		border-radius: 16px;
-		padding: 20px;
-		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-		z-index: 40;
-	}
-
-	.agent-card-header {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		margin-bottom: 16px;
-	}
-
-	.agent-card-avatar {
-		width: 48px;
-		height: 48px;
-		border-radius: 12px;
-		background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: white;
-	}
-
-	.agent-card-header h3 {
-		font-size: 14px;
-		font-weight: bold;
-		color: white;
-	}
-
-	.agent-card-header p {
-		font-size: 10px;
-		color: #71717a;
-		margin-top: 2px;
-	}
-
-	.skills-label {
-		font-size: 10px;
-		font-weight: bold;
-		color: #52525b;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		margin-bottom: 8px;
-	}
-
-	.skills-list {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-		margin-bottom: 16px;
-	}
-
-	.skill {
-		padding: 4px 8px;
-		border-radius: 4px;
-		font-size: 9px;
-		font-weight: 500;
-	}
-
-	.skill.blue {
-		background: rgba(59, 130, 246, 0.1);
-		border: 1px solid rgba(59, 130, 246, 0.2);
-		color: #60a5fa;
-	}
-
-	.skill.purple {
-		background: rgba(168, 85, 247, 0.1);
-		border: 1px solid rgba(168, 85, 247, 0.2);
-		color: #c084fc;
-	}
-
-	.skill.green {
-		background: rgba(16, 185, 129, 0.1);
-		border: 1px solid rgba(16, 185, 129, 0.2);
-		color: #34d399;
-	}
-
-	.agent-card-info {
-		border-top: 1px solid #27272a;
-		padding-top: 12px;
-	}
-
-	.info-row {
-		display: flex;
-		justify-content: space-between;
-		font-size: 10px;
-		margin-bottom: 8px;
-	}
-
-	.info-row span:first-child {
-		color: #71717a;
-	}
-
-	.info-row span:last-child {
-		color: #d4d4d8;
-	}
-
-	.input-container {
-		padding: 24px;
-	}
-
-	.input-box {
-		max-width: 900px;
-		margin: 0 auto;
-		background: rgba(24, 24, 27, 0.8);
-		border: 1px solid #27272a;
-		border-radius: 16px;
-		padding: 8px;
-		transition: border-color 0.15s;
-	}
-
-	.input-box:focus-within {
-		border-color: #3f3f46;
-	}
-
-	.input-box textarea {
-		width: 100%;
-		background: transparent;
-		border: none;
-		outline: none;
-		resize: none;
-		padding: 12px;
-		font-size: 14px;
-		color: #e4e4e7;
-		font-family: inherit;
-		max-height: 160px;
-		min-height: 44px;
-	}
-
-	.input-box textarea::placeholder {
-		color: #3f3f46;
-	}
-
-	.input-actions {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 4px 8px;
-		border-top: 1px solid rgba(39, 39, 42, 0.5);
-		margin-top: 4px;
-	}
-
-	.input-tools {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.input-tools button {
-		background: transparent;
-		border: none;
-		color: #52525b;
-		padding: 6px;
-		border-radius: 6px;
-		cursor: pointer;
-		transition: color 0.15s;
-	}
-
-	.input-tools button:hover {
-		color: #a1a1aa;
-	}
-
-	.tool-divider {
-		width: 1px;
-		height: 12px;
-		background: #27272a;
-		margin: 0 4px;
-	}
-
-	.status-text {
-		font-size: 10px;
-		color: #52525b;
-		font-family: 'JetBrains Mono', monospace;
-	}
-
-	.send-btn {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		background: #2563eb;
-		border: none;
-		color: white;
-		padding: 6px 16px;
-		border-radius: 12px;
-		font-size: 12px;
-		font-weight: bold;
-		cursor: pointer;
-		transition: all 0.15s;
-		box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-	}
-
-	.send-btn:hover:not(:disabled) {
-		background: #3b82f6;
-	}
-
-	.send-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
-	.send-btn:active:not(:disabled) {
-		transform: scale(0.98);
-	}
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #3f3f46;
+        border-radius: 6px;
+    }
+    textarea {
+        background: transparent;
+    }
 </style>
