@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Send, Menu, Plus, Settings, MessageSquare, Code, Terminal, Zap } from 'lucide-svelte';
+	import { Send, Menu, Plus, Settings, MessageSquare, Code, Terminal, Zap } from '@lucide/svelte';
 	
 	type Message = { role: string; content: string; timestamp: string };
 	let messages = $state<Message[]>([
