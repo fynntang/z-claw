@@ -15,12 +15,15 @@
 		Hash,
 		Calendar,
 		MessageSquare,
-		ChevronDown
+		Wrench,
+		ScrollText
 	} from '@lucide/svelte';
 	import { generateId } from '$lib/stores/app';
+	import ToolsPanel from './ToolsPanel.svelte';
+	import LogsPanel from './LogsPanel.svelte';
 
 	// Tab state
-	let activeTab = $state<'agents' | 'channels' | 'tasks'>('agents');
+	let activeTab = $state<'agents' | 'channels' | 'tasks' | 'tools' | 'logs'>('agents');
 
 	// Mock agents
 	const mockAgents = [
@@ -124,6 +127,20 @@
 			<Calendar size={14} />
 			<span>任务</span>
 		</button>
+		<button
+			class="tab-btn {activeTab === 'tools' ? 'active' : ''}"
+			onclick={() => (activeTab = 'tools')}
+		>
+			<Wrench size={14} />
+			<span>工具</span>
+		</button>
+		<button
+			class="tab-btn {activeTab === 'logs' ? 'active' : ''}"
+			onclick={() => (activeTab = 'logs')}
+		>
+			<ScrollText size={14} />
+			<span>日志</span>
+		</button>
 	</div>
 
 	<!-- Main Content Area -->
@@ -225,6 +242,14 @@
 					{/each}
 				</div>
 			</div>
+		{:else if activeTab === 'tools'}
+			<div class="panel-column">
+				<ToolsPanel />
+			</div>
+		{:else if activeTab === 'logs'}
+			<div class="panel-column">
+				<LogsPanel />
+			</div>
 		{/if}
 	</div>
 
@@ -302,6 +327,14 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 140px;
+	}
+
+	.panel-column {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-width: 200px;
+		background: rgba(0, 0, 0, 0.2);
 	}
 
 	/* List Header */

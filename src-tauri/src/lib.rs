@@ -6,7 +6,7 @@ mod agent;
 mod bridge;
 
 use agent::AgentResponse;
-use bridge::{AppConfig, ChatInput, DesktopBridge, RuntimeStatus, ValidationResult};
+use bridge::{AppConfig, ChatInput, DesktopBridge, LogEntry, LogLevel, RuntimeStatus, ToolInfo, ValidationResult};
 
 /// Greet command - example from Tauri template
 #[tauri::command]
@@ -59,6 +59,31 @@ fn config_validate(config: AppConfig) -> ValidationResult {
     bridge::config::validate_config(&config)
 }
 
+/// Get list of available tools
+#[tauri::command]
+fn tools_list() -> Vec<ToolInfo> {
+    bridge::tools::list_tools()
+}
+
+/// Get recent log entries
+#[tauri::command]
+async fn logs_tail(limit: Option<usize>, level: Option<String>) -> Vec<LogEntry> {
+    let log_level = level.and_then(|l| match l.to_lowercase().as_str() {
+        "debug" => Some(LogLevel::Debug),
+        "info" => Some(LogLevel::Info),
+        "warn" => Some(LogLevel::Warn),
+        "error" => Some(LogLevel::Error),
+        _ => None,
+    });
+    bridge::logs::tail_logs(limit, log_level).await
+}
+
+/// Clear all logs
+#[tauri::command]
+async fn logs_clear() {
+    bridge::logs::clear_logs().await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -69,7 +94,10 @@ pub fn run() {
             get_status,
             config_get,
             config_set,
-            config_validate
+            config_validate,
+            tools_list,
+            logs_tail,
+            logs_clear
         ])
         .run(tauri::generate_context!())
         .expect("error while running ZClaw application");
