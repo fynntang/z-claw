@@ -4,28 +4,13 @@
 		currentAgentId,
 		showSettings,
 		sessions,
-		currentSessionId
+		currentSessionId,
+		activeSidebarTab
 	} from '$lib/stores/app';
-	import {
-		Bot,
-		Plus,
-		Settings,
-		Hash,
-		Calendar,
-		MessageSquare,
-		Wrench,
-		ScrollText
-	} from '@lucide/svelte';
+	import { Bot, Plus, Settings, Hash, Calendar, MessageSquare } from '@lucide/svelte';
 	import { generateId } from '$lib/stores/app';
 	import ToolsPanel from './ToolsPanel.svelte';
 	import LogsPanel from './LogsPanel.svelte';
-
-	// Tab state
-	let activeTab = $state<'agents' | 'channels' | 'tasks' | 'tools' | 'logs'>('agents');
-
-	// TODO: Load from backend when agents/channels/tasks API is implemented
-	// For now, these are empty placeholders
-	// $agents and $sessions are managed by stores, initialized as empty arrays
 
 	// Placeholder data for channels and tasks (to be replaced with backend data)
 	const channels: { id: string; name: string; type: string; active: boolean }[] = [];
@@ -51,53 +36,14 @@
 </script>
 
 <aside class="sidebar">
-	<!-- Tab Bar -->
-	<div class="tab-bar">
-		<button
-			class="tab-btn {activeTab === 'agents' ? 'active' : ''}"
-			onclick={() => (activeTab = 'agents')}
-			title="智能体"
-		>
-			<Bot size={16} />
-		</button>
-		<button
-			class="tab-btn {activeTab === 'channels' ? 'active' : ''}"
-			onclick={() => (activeTab = 'channels')}
-			title="频道"
-		>
-			<Hash size={16} />
-		</button>
-		<button
-			class="tab-btn {activeTab === 'tasks' ? 'active' : ''}"
-			onclick={() => (activeTab = 'tasks')}
-			title="任务"
-		>
-			<Calendar size={16} />
-		</button>
-		<button
-			class="tab-btn {activeTab === 'tools' ? 'active' : ''}"
-			onclick={() => (activeTab = 'tools')}
-			title="工具"
-		>
-			<Wrench size={16} />
-		</button>
-		<button
-			class="tab-btn {activeTab === 'logs' ? 'active' : ''}"
-			onclick={() => (activeTab = 'logs')}
-			title="日志"
-		>
-			<ScrollText size={16} />
-		</button>
-	</div>
-
 	<!-- Main Content Area -->
 	<div class="sidebar-content">
-		{#if activeTab === 'tools'}
+		{#if $activeSidebarTab === 'tools'}
 			<!-- Tools Panel - Full Width -->
 			<div class="panel-column full-width">
 				<ToolsPanel />
 			</div>
-		{:else if activeTab === 'logs'}
+		{:else if $activeSidebarTab === 'logs'}
 			<!-- Logs Panel - Full Width -->
 			<div class="panel-column full-width">
 				<LogsPanel />
@@ -106,7 +52,7 @@
 			<!-- Left Column: List -->
 			<div class="list-column">
 				<!-- Agents List -->
-				{#if activeTab === 'agents'}
+				{#if $activeSidebarTab === 'agents'}
 					<div class="list-header">
 						<span class="list-title">我的智能体</span>
 						<button class="icon-btn" title="添加智能体">
@@ -135,7 +81,7 @@
 					</div>
 
 					<!-- Channels List -->
-				{:else if activeTab === 'channels'}
+				{:else if $activeSidebarTab === 'channels'}
 					<div class="list-header">
 						<span class="list-title">IM 频道</span>
 						<button class="icon-btn" title="添加频道">
@@ -191,7 +137,7 @@
 			</div>
 
 			<!-- Right Column: Sessions (only for agents tab) -->
-			{#if activeTab === 'agents'}
+			{#if $activeSidebarTab === 'agents'}
 				<div class="sessions-column">
 					<div class="list-header">
 						<span class="list-title">消息会话</span>
@@ -234,40 +180,6 @@
 		flex-direction: column;
 		border-right: 1px solid rgba(39, 39, 42, 0.5);
 		background: rgba(0, 0, 0, 0.3);
-	}
-
-	/* Tab Bar */
-	.tab-bar {
-		display: flex;
-		justify-content: space-around;
-		padding: 6px 8px;
-		gap: 4px;
-		border-bottom: 1px solid rgba(39, 39, 42, 0.5);
-		background: rgba(0, 0, 0, 0.2);
-	}
-
-	.tab-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 40px;
-		height: 32px;
-		background: transparent;
-		border: none;
-		border-radius: 6px;
-		color: #71717a;
-		cursor: pointer;
-		transition: all 0.15s;
-	}
-
-	.tab-btn:hover {
-		color: #a1a1aa;
-		background: rgba(24, 24, 27, 0.5);
-	}
-
-	.tab-btn.active {
-		color: white;
-		background: rgba(37, 99, 235, 0.2);
 	}
 
 	/* Content Area */

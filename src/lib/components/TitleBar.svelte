@@ -1,8 +1,21 @@
 <script lang="ts">
 	import { getCurrentWindow } from '@tauri-apps/api/window';
-	import { Bell, Minus, Moon, Settings, Square, Sun, X } from '@lucide/svelte';
+	import {
+		Bell,
+		Minus,
+		Moon,
+		Settings,
+		Square,
+		Sun,
+		X,
+		Bot,
+		Hash,
+		Calendar,
+		Wrench,
+		ScrollText
+	} from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import { showSettings } from '$lib/stores/app';
+	import { showSettings, activeSidebarTab, type SidebarTab } from '$lib/stores/app';
 	import { mode as darkMode, toggleMode } from 'mode-watcher';
 	import { Button } from '$lib/components/ui/button';
 
@@ -10,6 +23,15 @@
 
 	let isMaximized = $state(false);
 	let hasNotification = $state(false);
+
+	// Tab definitions
+	const tabs: { id: SidebarTab; icon: typeof Bot; title: string }[] = [
+		{ id: 'agents', icon: Bot, title: '智能体' },
+		{ id: 'channels', icon: Hash, title: '频道' },
+		{ id: 'tasks', icon: Calendar, title: '任务' },
+		{ id: 'tools', icon: Wrench, title: '工具' },
+		{ id: 'logs', icon: ScrollText, title: '日志' }
+	];
 
 	onMount(() => {
 		let unlisten: (() => void) | undefined;
@@ -61,6 +83,19 @@
 	<div class="titlebar-drag" data-tauri-drag-region>
 		<img src="/icon.ico" alt="ZClaw" class="app-icon" />
 		<span class="app-title">ZClaw</span>
+	</div>
+
+	<!-- Tab Bar -->
+	<div class="tab-bar">
+		{#each tabs as tab}
+			<button
+				class="tab-btn {$activeSidebarTab === tab.id ? 'active' : ''}"
+				onclick={() => activeSidebarTab.set(tab.id)}
+				title={tab.title}
+			>
+				<tab.icon size={16} />
+			</button>
+		{/each}
 	</div>
 
 	<div class="titlebar-actions">
@@ -193,6 +228,48 @@
 		display: flex;
 		align-items: center;
 		height: 100%;
+	}
+
+	/* Tab Bar */
+	.tab-bar {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		height: 100%;
+		padding: 0 8px;
+	}
+
+	.tab-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 26px;
+		background: transparent;
+		border: none;
+		border-radius: 6px;
+		color: #71717a;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.tab-btn:hover {
+		color: #a1a1aa;
+		background: rgba(24, 24, 27, 0.5);
+	}
+
+	.tab-btn.active {
+		color: white;
+		background: rgba(37, 99, 235, 0.3);
+	}
+
+	:global(html:not(.dark)) .tab-btn:hover {
+		background: rgba(228, 228, 231, 1);
+	}
+
+	:global(html:not(.dark)) .tab-btn.active {
+		color: #18181b;
+		background: rgba(37, 99, 235, 0.15);
 	}
 
 	/* Unified action button style using UI library Button */

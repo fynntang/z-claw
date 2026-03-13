@@ -49,6 +49,10 @@ export const configLoading = writable<boolean>(false);
 export const showSettings = writable(false);
 export const showAgentInfo = writable(false);
 
+// Sidebar tab state
+export type SidebarTab = 'agents' | 'channels' | 'tasks' | 'tools' | 'logs';
+export const activeSidebarTab = writable<SidebarTab>('agents');
+
 // Helper
 export function generateId(): string {
 	return Math.random().toString(36).substring(2, 9);
