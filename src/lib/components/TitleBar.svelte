@@ -217,6 +217,7 @@
 		color: #a1a1aa;
 		letter-spacing: 0.02em;
 		transition: color 0.2s ease;
+		margin-right: 8px;
 	}
 
 	:global(html:not(.dark)) .app-title {
@@ -227,13 +228,11 @@
 		display: flex;
 		align-items: center;
 		height: 100%;
+		margin-left: auto;
 	}
 
-	/* Tab Bar - centered */
+	/* Tab Bar - left aligned after title */
 	.tab-bar {
-		position: absolute;
-		left: 50%;
-		transform: translateX(-50%);
 		display: flex;
 		align-items: center;
 		gap: 2px;
