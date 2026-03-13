@@ -83,7 +83,9 @@
 </script>
 
 {#if $showSettings}
-	<div class="settings-overlay" onclick={close}>
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="settings-overlay" onclick={close} onkeydown={(e) => e.key === 'Escape' && close()}>
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 		<div class="settings-panel" onclick={(e) => e.stopPropagation()}>
 			<!-- Sidebar -->
 			<div class="settings-sidebar">
@@ -116,8 +118,8 @@
 						<h3>模型与 API 配置</h3>
 
 						<div class="form-group">
-							<label>Provider</label>
-							<select bind:value={formData.provider}>
+							<label for="provider">Provider</label>
+							<select id="provider" bind:value={formData.provider}>
 								{#each AVAILABLE_PROVIDERS as p}
 									<option value={p.id}>{p.name}</option>
 								{/each}
@@ -125,14 +127,20 @@
 						</div>
 
 						<div class="form-group">
-							<label>API Key</label>
-							<input type="password" bind:value={formData.apiKey} placeholder="sk-..." />
+							<label for="api-key">API Key</label>
+							<input
+								id="api-key"
+								type="password"
+								bind:value={formData.apiKey}
+								placeholder="sk-..."
+							/>
 							<p class="hint">API key 将安全存储在 ~/.zeroclaw/config.toml</p>
 						</div>
 
 						<div class="form-group">
-							<label>API Endpoint</label>
+							<label for="api-url">API Endpoint</label>
 							<input
+								id="api-url"
 								type="text"
 								bind:value={formData.apiUrl}
 								placeholder="https://api.openai.com/v1"
@@ -140,8 +148,8 @@
 						</div>
 
 						<div class="form-group">
-							<label>默认模型</label>
-							<select bind:value={formData.model}>
+							<label for="model">默认模型</label>
+							<select id="model" bind:value={formData.model}>
 								{#each AVAILABLE_PROVIDERS.find((p) => p.id === formData.provider)?.models || [] as m}
 									<option value={m}>{m}</option>
 								{/each}
@@ -149,15 +157,23 @@
 						</div>
 
 						<div class="form-group">
-							<label>Temperature ({formData.temperature.toFixed(1)})</label>
-							<input type="range" min="0" max="2" step="0.1" bind:value={formData.temperature} />
+							<label for="temperature">Temperature ({formData.temperature.toFixed(1)})</label>
+							<input
+								id="temperature"
+								type="range"
+								min="0"
+								max="2"
+								step="0.1"
+								bind:value={formData.temperature}
+							/>
 							<p class="hint">控制响应的随机性。0 = 确定性，2 = 最大随机性</p>
 						</div>
 
 						<div class="form-group">
-							<label>本地推理权重路径 (可选)</label>
+							<label for="local-model-path">本地推理权重路径 (可选)</label>
 							<div class="input-with-btn">
 								<input
+									id="local-model-path"
 									type="text"
 									bind:value={formData.localModelPath}
 									placeholder="/path/to/model.gguf"

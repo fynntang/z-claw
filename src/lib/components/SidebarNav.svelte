@@ -56,161 +56,165 @@
 		<button
 			class="tab-btn {activeTab === 'agents' ? 'active' : ''}"
 			onclick={() => (activeTab = 'agents')}
+			title="智能体"
 		>
-			<Bot size={14} />
-			<span>智能体</span>
+			<Bot size={16} />
 		</button>
 		<button
 			class="tab-btn {activeTab === 'channels' ? 'active' : ''}"
 			onclick={() => (activeTab = 'channels')}
+			title="频道"
 		>
-			<Hash size={14} />
-			<span>频道</span>
+			<Hash size={16} />
 		</button>
 		<button
 			class="tab-btn {activeTab === 'tasks' ? 'active' : ''}"
 			onclick={() => (activeTab = 'tasks')}
+			title="任务"
 		>
-			<Calendar size={14} />
-			<span>任务</span>
+			<Calendar size={16} />
 		</button>
 		<button
 			class="tab-btn {activeTab === 'tools' ? 'active' : ''}"
 			onclick={() => (activeTab = 'tools')}
+			title="工具"
 		>
-			<Wrench size={14} />
-			<span>工具</span>
+			<Wrench size={16} />
 		</button>
 		<button
 			class="tab-btn {activeTab === 'logs' ? 'active' : ''}"
 			onclick={() => (activeTab = 'logs')}
+			title="日志"
 		>
-			<ScrollText size={14} />
-			<span>日志</span>
+			<ScrollText size={16} />
 		</button>
 	</div>
 
 	<!-- Main Content Area -->
 	<div class="sidebar-content">
-		<!-- Left Column: List -->
-		<div class="list-column">
-			<!-- Agents List -->
-			{#if activeTab === 'agents'}
-				<div class="list-header">
-					<span class="list-title">我的智能体</span>
-					<button class="icon-btn" title="添加智能体">
-						<Plus size={14} />
-					</button>
-				</div>
-				<div class="list-items">
-					{#each $agents as agent}
-						{@const AgentIcon = typeof agent.icon === 'string' ? Bot : agent.icon}
-						<button
-							class="list-item {$currentAgentId === agent.id ? 'active' : ''}"
-							onclick={() => selectAgent(agent.id)}
-						>
-							<div class="item-icon">
-								<AgentIcon size={18} />
-								{#if agent.status === 'running'}
-									<span class="status-indicator running"></span>
-								{/if}
-							</div>
-							<div class="item-info">
-								<span class="item-name">{agent.name}</span>
-								<span class="item-meta">{agent.model}</span>
-							</div>
-						</button>
-					{/each}
-				</div>
-
-				<!-- Channels List -->
-			{:else if activeTab === 'channels'}
-				<div class="list-header">
-					<span class="list-title">IM 频道</span>
-					<button class="icon-btn" title="添加频道">
-						<Plus size={14} />
-					</button>
-				</div>
-				<div class="list-items">
-					{#if channels.length === 0}
-						<div class="empty-state">
-							<span class="empty-text">暂无频道</span>
-							<span class="empty-hint">点击 + 添加 IM 频道</span>
-						</div>
-					{:else}
-						{#each channels as channel}
-							<div class="list-item {channel.active ? 'active' : ''}">
-								<Hash size={16} class="item-icon-simple" />
-								<div class="item-info">
-									<span class="item-name">{channel.name}</span>
-									<span class="item-meta">{channel.type}</span>
-								</div>
-							</div>
-						{/each}
-					{/if}
-				</div>
-
-				<!-- Tasks List -->
-			{:else}
-				<div class="list-header">
-					<span class="list-title">定时任务</span>
-					<button class="icon-btn" title="添加任务">
-						<Plus size={14} />
-					</button>
-				</div>
-				<div class="list-items">
-					{#if tasks.length === 0}
-						<div class="empty-state">
-							<span class="empty-text">暂无任务</span>
-							<span class="empty-hint">点击 + 添加定时任务</span>
-						</div>
-					{:else}
-						{#each tasks as task}
-							<div class="list-item {task.active ? 'active' : ''}">
-								<div class="task-status {task.active ? 'running' : ''}"></div>
-								<div class="item-info">
-									<span class="item-name">{task.name}</span>
-									<span class="item-meta">{task.time}</span>
-								</div>
-							</div>
-						{/each}
-					{/if}
-				</div>
-			{/if}
-		</div>
-
-		<!-- Right Column: Sessions (only for agents tab) -->
-		{#if activeTab === 'agents'}
-			<div class="sessions-column">
-				<div class="list-header">
-					<span class="list-title">消息会话</span>
-					<button class="icon-btn" onclick={newSession} title="新建会话">
-						<Plus size={14} />
-					</button>
-				</div>
-				<div class="list-items">
-					{#each $sessions as session}
-						<button
-							class="session-item {$currentSessionId === session.id ? 'active' : ''}"
-							onclick={() => selectSession(session.id)}
-						>
-							<MessageSquare size={14} class="session-icon" />
-							<div class="session-info">
-								<span class="session-title">{session.title}</span>
-								<span class="session-time">{session.time}</span>
-							</div>
-						</button>
-					{/each}
-				</div>
-			</div>
-		{:else if activeTab === 'tools'}
-			<div class="panel-column">
+		{#if activeTab === 'tools'}
+			<!-- Tools Panel - Full Width -->
+			<div class="panel-column full-width">
 				<ToolsPanel />
 			</div>
 		{:else if activeTab === 'logs'}
-			<div class="panel-column">
+			<!-- Logs Panel - Full Width -->
+			<div class="panel-column full-width">
 				<LogsPanel />
 			</div>
+		{:else}
+			<!-- Left Column: List -->
+			<div class="list-column">
+				<!-- Agents List -->
+				{#if activeTab === 'agents'}
+					<div class="list-header">
+						<span class="list-title">我的智能体</span>
+						<button class="icon-btn" title="添加智能体">
+							<Plus size={14} />
+						</button>
+					</div>
+					<div class="list-items">
+						{#each $agents as agent}
+							{@const AgentIcon = typeof agent.icon === 'string' ? Bot : agent.icon}
+							<button
+								class="list-item {$currentAgentId === agent.id ? 'active' : ''}"
+								onclick={() => selectAgent(agent.id)}
+							>
+								<div class="item-icon">
+									<AgentIcon size={18} />
+									{#if agent.status === 'running'}
+										<span class="status-indicator running"></span>
+									{/if}
+								</div>
+								<div class="item-info">
+									<span class="item-name">{agent.name}</span>
+									<span class="item-meta">{agent.model}</span>
+								</div>
+							</button>
+						{/each}
+					</div>
+
+					<!-- Channels List -->
+				{:else if activeTab === 'channels'}
+					<div class="list-header">
+						<span class="list-title">IM 频道</span>
+						<button class="icon-btn" title="添加频道">
+							<Plus size={14} />
+						</button>
+					</div>
+					<div class="list-items">
+						{#if channels.length === 0}
+							<div class="empty-state">
+								<span class="empty-text">暂无频道</span>
+								<span class="empty-hint">点击 + 添加 IM 频道</span>
+							</div>
+						{:else}
+							{#each channels as channel}
+								<div class="list-item {channel.active ? 'active' : ''}">
+									<Hash size={16} class="item-icon-simple" />
+									<div class="item-info">
+										<span class="item-name">{channel.name}</span>
+										<span class="item-meta">{channel.type}</span>
+									</div>
+								</div>
+							{/each}
+						{/if}
+					</div>
+
+					<!-- Tasks List -->
+				{:else}
+					<div class="list-header">
+						<span class="list-title">定时任务</span>
+						<button class="icon-btn" title="添加任务">
+							<Plus size={14} />
+						</button>
+					</div>
+					<div class="list-items">
+						{#if tasks.length === 0}
+							<div class="empty-state">
+								<span class="empty-text">暂无任务</span>
+								<span class="empty-hint">点击 + 添加定时任务</span>
+							</div>
+						{:else}
+							{#each tasks as task}
+								<div class="list-item {task.active ? 'active' : ''}">
+									<div class="task-status {task.active ? 'running' : ''}"></div>
+									<div class="item-info">
+										<span class="item-name">{task.name}</span>
+										<span class="item-meta">{task.time}</span>
+									</div>
+								</div>
+							{/each}
+						{/if}
+					</div>
+				{/if}
+			</div>
+
+			<!-- Right Column: Sessions (only for agents tab) -->
+			{#if activeTab === 'agents'}
+				<div class="sessions-column">
+					<div class="list-header">
+						<span class="list-title">消息会话</span>
+						<button class="icon-btn" onclick={newSession} title="新建会话">
+							<Plus size={14} />
+						</button>
+					</div>
+					<div class="list-items">
+						{#each $sessions as session}
+							<button
+								class="session-item {$currentSessionId === session.id ? 'active' : ''}"
+								onclick={() => selectSession(session.id)}
+							>
+								<MessageSquare size={14} class="session-icon" />
+								<div class="session-info">
+									<span class="session-title">{session.title}</span>
+									<span class="session-time">{session.time}</span>
+								</div>
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		{/if}
 	</div>
 
@@ -235,25 +239,23 @@
 	/* Tab Bar */
 	.tab-bar {
 		display: flex;
-		padding: 8px;
+		justify-content: space-around;
+		padding: 6px 8px;
 		gap: 4px;
 		border-bottom: 1px solid rgba(39, 39, 42, 0.5);
 		background: rgba(0, 0, 0, 0.2);
 	}
 
 	.tab-btn {
-		flex: 1;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		padding: 8px 12px;
+		width: 40px;
+		height: 32px;
 		background: transparent;
 		border: none;
 		border-radius: 6px;
 		color: #71717a;
-		font-size: 12px;
-		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.15s;
 	}
@@ -296,6 +298,10 @@
 		flex-direction: column;
 		min-width: 200px;
 		background: rgba(0, 0, 0, 0.2);
+	}
+
+	.panel-column.full-width {
+		width: 100%;
 	}
 
 	/* List Header */
@@ -408,12 +414,12 @@
 		box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
 	}
 
-	.item-icon-simple {
+	:global(.item-icon-simple) {
 		color: #52525b;
 		flex-shrink: 0;
 	}
 
-	.list-item.active .item-icon-simple {
+	.list-item.active :global(.item-icon-simple) {
 		color: #60a5fa;
 	}
 
@@ -502,12 +508,12 @@
 		background: rgba(37, 99, 235, 0.15);
 	}
 
-	.session-icon {
+	:global(.session-icon) {
 		color: #52525b;
 		flex-shrink: 0;
 	}
 
-	.session-item.active .session-icon {
+	.session-item.active :global(.session-icon) {
 		color: #60a5fa;
 	}
 

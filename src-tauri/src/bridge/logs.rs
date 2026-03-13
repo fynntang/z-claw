@@ -43,6 +43,7 @@ static LOG_BUFFER: LazyLock<RwLock<Vec<LogEntry>>> = LazyLock::new(|| RwLock::ne
 const MAX_LOG_ENTRIES: usize = 1000;
 
 /// Generate a unique log ID.
+#[allow(dead_code)]
 fn generate_log_id() -> String {
     let now_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -51,12 +52,14 @@ fn generate_log_id() -> String {
 }
 
 /// Format timestamp for display.
+#[allow(dead_code)]
 fn format_timestamp() -> String {
     let now = chrono::Local::now();
     now.format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
 /// Add a log entry to the buffer.
+#[allow(dead_code)]
 pub async fn log(level: LogLevel, source: &str, message: &str) {
     let entry = LogEntry {
         id: generate_log_id(),
@@ -106,6 +109,7 @@ pub async fn clear_logs() {
 }
 
 /// Add a startup log entry (for initialization).
+#[allow(dead_code)]
 pub async fn init_logs() {
     log(
         LogLevel::Info,

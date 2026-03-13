@@ -86,10 +86,10 @@
 			onclick={toggleMode}
 			title={darkMode.current === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
 		>
-            {#if darkMode.current === 'dark'}
-			    <Sun size={16} class="theme-icon icon-sun" />
+			{#if darkMode.current === 'dark'}
+				<Sun size={16} class="theme-icon icon-sun" />
 			{:else}
-			    <Moon size={16} class="theme-icon icon-moon" />
+				<Moon size={16} class="theme-icon icon-moon" />
 			{/if}
 		</Button>
 
@@ -204,40 +204,40 @@
 		position: relative;
 	}
 
-	:global(html.dark) .action-btn:hover {
+	:global(html.dark) :global(.action-btn:hover) {
 		background: rgba(63, 63, 70, 0.5) !important;
 		color: #e4e4e7 !important;
 	}
 
-	:global(html:not(.dark)) .action-btn:hover {
+	:global(html:not(.dark)) :global(.action-btn:hover) {
 		background: rgba(228, 228, 231, 1) !important;
 		color: #18181b !important;
 	}
 
 	/* Theme toggle icon visibility */
-	.theme-icon {
+	:global(.theme-icon) {
 		position: absolute;
 		transition:
 			opacity 0.2s,
 			transform 0.2s;
 	}
 
-	.icon-sun {
+	:global(.icon-sun) {
 		opacity: 1;
 		transform: rotate(0deg);
 	}
 
-	.icon-moon {
+	:global(.icon-moon) {
 		opacity: 0;
 		transform: rotate(-90deg);
 	}
 
-	:global(html.dark) .icon-sun {
+	:global(html.dark) :global(.icon-sun) {
 		opacity: 0;
 		transform: rotate(90deg);
 	}
 
-	:global(html.dark) .icon-moon {
+	:global(html.dark) :global(.icon-moon) {
 		opacity: 1;
 		transform: rotate(0deg);
 	}

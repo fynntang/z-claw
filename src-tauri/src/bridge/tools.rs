@@ -48,6 +48,7 @@ const DEFAULT_TOOLS: &[(&str, &str, &str)] = &[
 ];
 
 /// Additional tools available with full configuration.
+#[allow(dead_code)]
 const FULL_TOOLS: &[(&str, &str, &str)] = &[
     // Cron tools
     ("cron_add", "Add a scheduled task", "scheduling"),
@@ -157,6 +158,7 @@ pub fn list_tools() -> Vec<ToolInfo> {
 }
 
 /// Get list of all available tools (including optional ones).
+#[allow(dead_code)]
 pub fn list_all_tools() -> Vec<ToolInfo> {
     let mut tools: Vec<ToolInfo> = list_tools();
     tools.extend(FULL_TOOLS.iter().map(|(name, desc, cat)| ToolInfo {
@@ -168,6 +170,7 @@ pub fn list_all_tools() -> Vec<ToolInfo> {
 }
 
 /// Get a specific tool by name.
+#[allow(dead_code)]
 pub fn get_tool(name: &str) -> Option<ToolInfo> {
     DEFAULT_TOOLS
         .iter()
