@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { X, Server, Shield, Database, Cpu, Globe, KeyRound, Settings } from '@lucide/svelte';
+	import { X, Server, Shield, Database, Cpu, Globe, KeyRound, Settings, Save, AlertCircle } from '@lucide/svelte';
+	import { invoke } from '@tauri-apps/api/core';
 	
 	let { isOpen = $bindable(false) } = $props();
 
@@ -8,6 +9,55 @@
 	}
 
 	let activeTab = $state('general');
+	
+	// Configuration State
+	let config = $state({
+		api_key: '',
+		api_url: 'https://api.openai.com/v1',
+		provider: 'openai',
+		model: 'gpt-4o-mini',
+		temperature: 0.7,
+		local_model_path: null as string | null
+	});
+	
+	let isLoading = $state(true);
+	let saveStatus = $state<'idle' | 'saving' | 'success' | 'error'>('idle');
+	let errorMessage = $state('');
+
+	async function loadConfig() {
+		try {
+			isLoading = true;
+			const data = await invoke<typeof config>('config_get');
+			config = data;
+		} catch (e) {
+			console.error("Failed to load config:", e);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	async function saveConfig() {
+		try {
+			saveStatus = 'saving';
+			errorMessage = '';
+			await invoke('config_set', { config });
+			saveStatus = 'success';
+			setTimeout(() => { if (saveStatus === 'success') saveStatus = 'idle'; }, 2000);
+		} catch (e) {
+			console.error("Failed to save config:", e);
+			saveStatus = 'error';
+			errorMessage = String(e);
+		}
+	}
+	
+	// Run loadConfig when modal opens
+	$effect(() => {
+		if (isOpen) {
+			loadConfig();
+			saveStatus = 'idle';
+		}
+	});
+
 </script>
 
 {#if isOpen}
@@ -85,45 +135,50 @@
 
 				<!-- Settings Edit Area -->
 				<div class="flex-1 overflow-y-auto p-6 scrollbar-thin">
-					{#if activeTab === 'general'}
+					{#if isLoading}
+						<div class="flex h-full items-center justify-center flex-col gap-3 text-muted-foreground/50 opacity-50 animate-pulse">
+							<Settings class="w-12 h-12 animate-spin-slow" />
+							<p class="text-xs tracking-widest uppercase">Loading Configuration...</p>
+						</div>
+					{:else if activeTab === 'general'}
 						<div class="space-y-8 animate-in fade-in duration-300">
 							<div class="space-y-4">
 								<h3 class="text-sm font-bold tracking-wider text-foreground pb-2 border-b border-border/50">Core Parameters</h3>
 								
 								<div class="space-y-4">
-									<div class="flex flex-col gap-1.5">
-										<label for="workspace-dir" class="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Workspace Directory</label>
-										<div class="flex gap-2">
-											<input id="workspace-dir" type="text" value="C:\Users\fzpyi\.openclaw-autoclaw\workspace\z-claw" disabled class="flex-1 bg-muted/20 border border-border rounded-sm px-3 py-2 text-xs text-foreground/80 focus:outline-none focus:border-primary/50 transition-colors" />
-											<button class="px-4 py-2 bg-muted/40 hover:bg-muted border border-border rounded-sm text-xs font-medium transition-colors">Browse...</button>
+									<div class="grid grid-cols-2 gap-4">
+										<div class="flex flex-col gap-1.5">
+											<label for="provider" class="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Provider</label>
+											<select id="provider" bind:value={config.provider} class="bg-muted/20 border border-border rounded-sm px-3 py-2 text-xs text-foreground/80 focus:outline-none focus:border-primary/50 transition-colors">
+												<option value="openai">OpenAI</option>
+												<option value="anthropic">Anthropic</option>
+												<option value="openrouter">OpenRouter</option>
+												<option value="ollama">Ollama (Local)</option>
+											</select>
+										</div>
+										<div class="flex flex-col gap-1.5">
+											<label for="model-name" class="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Model</label>
+											<input id="model-name" type="text" bind:value={config.model} placeholder="e.g. gpt-4o-mini" class="bg-muted/20 border border-border rounded-sm px-3 py-2 text-xs text-foreground/80 focus:outline-none focus:border-primary/50 transition-colors" />
 										</div>
 									</div>
 
 									<div class="flex flex-col gap-1.5">
-										<div class="text-[11px] uppercase tracking-widest text-muted-foreground font-bold" id="auto-start-label">Auto-Start</div>
-										<div class="flex items-center gap-3">
-											<button aria-labelledby="auto-start-label" class="w-10 h-5 rounded-full bg-primary/20 relative transition-colors cursor-pointer">
-												<span class="absolute left-5 top-0.5 w-4 h-4 bg-primary rounded-full shadow-sm"></span>
-											</button>
-											<span class="text-xs text-muted-foreground">Launch ZClaw daemon on system boot</span>
-										</div>
+										<label for="api-url" class="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">API Base URL</label>
+										<input id="api-url" type="text" bind:value={config.api_url} placeholder="https://api.openai.com/v1" class="w-full bg-muted/20 border border-border rounded-sm px-3 py-2 text-xs text-foreground/80 focus:outline-none focus:border-primary/50 transition-colors" />
 									</div>
-									
+
 									<div class="flex flex-col gap-1.5">
-										<div class="text-[11px] uppercase tracking-widest text-muted-foreground font-bold" id="telemetry-label">Telemetry</div>
-										<div class="flex items-center gap-3">
-											<button aria-labelledby="telemetry-label" class="w-10 h-5 rounded-full bg-muted border border-border relative transition-colors cursor-pointer">
-												<span class="absolute left-0.5 top-0.5 w-4 h-4 bg-muted-foreground/40 rounded-full shadow-sm"></span>
-											</button>
-											<span class="text-xs text-muted-foreground">Send anonymous usage stats (Requires restart)</span>
+										<label for="api-key" class="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">API Key</label>
+										<input id="api-key" type="password" bind:value={config.api_key} placeholder="sk-..." class="w-full bg-muted/20 border border-border rounded-sm px-3 py-2 text-xs text-foreground/80 focus:outline-none focus:border-primary/50 transition-colors" />
+									</div>
+
+									<div class="flex flex-col gap-1.5 pt-2">
+										<div class="flex items-center justify-between">
+											<label for="temperature" class="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Temperature: {config.temperature.toFixed(1)}</label>
 										</div>
+										<input id="temperature" type="range" min="0.0" max="2.0" step="0.1" bind:value={config.temperature} class="w-full h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary" />
 									</div>
 								</div>
-							</div>
-
-							<div class="space-y-4">
-								<h3 class="text-sm font-bold tracking-wider text-red-500 pb-2 border-b border-border/50">Danger Zone</h3>
-								<button class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-sm text-xs text-red-500 font-bold transition-colors">Reset All Configurations</button>
 							</div>
 						</div>
 					{:else}
@@ -136,12 +191,28 @@
 			</div>
 
 			<!-- Footer Actions -->
-			<div class="h-14 border-t border-border/50 flex items-center justify-end px-6 shrink-0 bg-muted/5 gap-3">
-				<button onclick={closeSettings} class="px-4 py-2 text-xs font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-				<button class="px-5 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary text-xs font-bold tracking-widest uppercase rounded-sm shadow-[0_0_10px_rgba(var(--color-primary),0.2)] transition-all flex items-center gap-2">
-					<Settings class="w-3.5 h-3.5" />
-					Apply Changes
-				</button>
+			<div class="h-14 border-t border-border/50 flex items-center justify-between px-6 shrink-0 bg-muted/5 gap-3">
+				<!-- Status Message -->
+				<div class="flex items-center text-xs">
+					{#if saveStatus === 'success'}
+						<span class="text-green-500 font-bold tracking-wider flex items-center gap-2 animate-in fade-in"><Shield class="w-3.5 h-3.5" /> SECURE SAVED</span>
+					{:else if saveStatus === 'error'}
+						<span class="text-red-500 font-bold tracking-wider flex items-center gap-2 animate-in fade-in" title={errorMessage}><AlertCircle class="w-3.5 h-3.5" /> FAILED (HOVER)</span>
+					{/if}
+				</div>
+
+				<div class="flex items-center gap-3">
+					<button onclick={closeSettings} class="px-4 py-2 text-xs font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+					<button onclick={saveConfig} disabled={saveStatus === 'saving'} class="px-5 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary text-xs font-bold tracking-widest uppercase rounded-sm shadow-[0_0_10px_rgba(var(--color-primary),0.2)] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+						{#if saveStatus === 'saving'}
+							<Settings class="w-3.5 h-3.5 animate-spin" />
+							Saving...
+						{:else}
+							<Save class="w-3.5 h-3.5" />
+							Apply Changes
+						{/if}
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>

@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { Send, Menu, Plus, Settings, Sparkles, MessageSquareDot, Hash, Clock, Cpu, Bot, Activity, FolderGit2, Info, ChevronRight, FileCode2, TerminalSquare } from '@lucide/svelte';
+	import { Send, Menu, Plus, Settings, Sparkles, MessageSquareDot, Hash, Clock, Cpu, Bot, Activity, FolderGit2, Info, ChevronRight, FileCode2, TerminalSquare, Loader2, Wrench } from '@lucide/svelte';
+	import { invoke } from '@tauri-apps/api/core';
+	import { tick, onMount } from 'svelte';
+	import SystemLogs from '$lib/components/SystemLogs.svelte';
 	
 	// Right sidebar state management
 	let rightPanelActive = $state<'none' | 'files' | 'agent'>('none');
@@ -17,24 +20,111 @@
 		{ role: 'assistant', content: 'SYSTEM ONLINE. AWAITING INPUT.', timestamp: '00:00' }
 	]);
 	
+	let isLogsOpen = $state(false);
+
+	// Backend stats
+	interface RuntimeStatus {
+		running: boolean;
+		provider: string;
+		model: string;
+	}
+
+	interface ToolInfo {
+		name: string;
+		description: string;
+		category: string;
+	}
+
+	let agentStatus = $state<RuntimeStatus>({ running: false, provider: 'loading...', model: 'loading...' });
+	let agentTools = $state<ToolInfo[]>([]);
+
+	onMount(async () => {
+		try {
+			agentStatus = await invoke<RuntimeStatus>('get_status');
+			agentTools = await invoke<ToolInfo[]>('tools_list');
+		} catch (e) {
+			console.error("Failed to load backend status:", e);
+		}
+	});
+
 	let input = $state('');
-	
-	function sendMessage() {
-		if (!input.trim()) return;
+	let isWaiting = $state(false);
+	let currentSessionId = $state<string | null>(null);
+	let messagesContainer: HTMLDivElement;
+
+	async function scrollToBottom() {
+		await tick();
+		if (messagesContainer) {
+			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		}
+	}
+
+	async function sendMessage() {
+		if (!input.trim() || isWaiting) return;
 		
 		const timeString = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-		messages = [...messages, { role: 'user', content: input, timestamp: timeString }];
+		const userMsg = input.trim();
+		messages = [...messages, { role: 'user', content: userMsg, timestamp: timeString }];
 		
-		const userMsg = input;
 		input = '';
+		isWaiting = true;
+		await scrollToBottom();
 		
-		setTimeout(() => {
+		try {
+			// Read current config to pass along to backend
+			interface ConfigModel {
+				api_key: string;
+				api_url: string;
+				provider: string;
+				model: string;
+			}
+			const config = await invoke<ConfigModel>('config_get');
+
+			interface ChatResponse {
+				content: string;
+				success: boolean;
+				error?: string;
+				session_id?: string;
+			}
+
+			// Invoke the backend chat functionality
+			const response = await invoke<ChatResponse>('chat', {
+				message: userMsg,
+				sessionId: currentSessionId,
+				apiKey: config.api_key,
+				apiUrl: config.api_url,
+				model: config.model
+			});
+			
+			const resTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+			if (response.success) {
+				if (response.session_id) {
+					currentSessionId = response.session_id;
+				}
+				messages = [...messages, { 
+					role: 'assistant', 
+					content: response.content, 
+					timestamp: resTime 
+				}];
+			} else {
+				messages = [...messages, { 
+					role: 'assistant', 
+					content: `ERROR: ${response.error || 'Unknown failure'}`, 
+					timestamp: resTime 
+				}];
+			}
+		} catch (e) {
+			const resTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
 			messages = [...messages, { 
 				role: 'assistant', 
-				content: `ACKNOWLEDGED: Processing command "${userMsg}"...`, 
-				timestamp: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }) 
+				content: `FATAL ERROR: ${String(e)}`, 
+				timestamp: resTime 
 			}];
-		}, 800);
+		} finally {
+			isWaiting = false;
+			await scrollToBottom();
+		}
 	}
 	
 	function handleKeydown(e: KeyboardEvent) {
@@ -107,7 +197,7 @@
 				<button class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 rounded-sm border-l-2 border-transparent text-left text-muted-foreground hover:text-foreground transition-all group">
 					<span class="truncate pl-7 text-[13px]"># bot-general</span>
 				</button>
-				<button class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 rounded-sm border-l-2 border-transparent text-left text-muted-foreground hover:text-foreground transition-all group opacity-60">
+				<button onclick={() => { isLogsOpen = true; }} class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 rounded-sm border-l-2 border-transparent text-left text-muted-foreground hover:text-foreground transition-all group opacity-60">
 					<span class="truncate pl-7 text-[13px]"># dev-logs</span>
 				</button>
 			</div>
@@ -206,9 +296,9 @@
 		</header>
 		
 		<!-- Message List -->
-		<div class="flex-1 overflow-y-auto pt-20 pb-32 px-4 md:px-8 w-full max-w-4xl mx-auto scroll-smooth">
+		<div bind:this={messagesContainer} class="flex-1 overflow-y-auto pt-20 pb-32 px-4 md:px-8 w-full max-w-4xl mx-auto scroll-smooth">
 			<div class="flex flex-col space-y-8">
-				{#each messages as msg (msg.timestamp)}
+				{#each messages as msg (msg.timestamp + msg.content.substring(0,10))}
 					<div class="flex flex-col {msg.role === 'user' ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-4 duration-500">
 						<div class="flex items-center gap-2 mb-2 opacity-60 {msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}">
 							<span class="text-[10px] font-bold uppercase tracking-[0.2em] {msg.role === 'user' ? 'text-foreground' : 'text-primary'}">
@@ -228,7 +318,8 @@
 								{msg.role === 'user' 
 									? 'bg-foreground text-background shadow-md' 
 									: 'bg-card/50 backdrop-blur-sm text-card-foreground border border-border shadow-sm'}">
-								<p class="whitespace-pre-wrap">{msg.content}</p>
+								
+								<p class="whitespace-pre-wrap {msg.content.startsWith('ERROR:') || msg.content.startsWith('FATAL ERROR:') ? 'text-red-500 font-bold' : ''}">{msg.content}</p>
 								
 								<!-- Decorative corners for high-tech feel -->
 								{#if msg.role === 'assistant'}
@@ -239,6 +330,27 @@
 						</div>
 					</div>
 				{/each}
+
+				<!-- Loading Indicator -->
+				{#if isWaiting}
+					<div class="flex flex-col items-start animate-in fade-in duration-300">
+						<div class="flex items-center gap-2 mb-2 opacity-60">
+							<span class="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">ZCLAW</span>
+							<span class="w-1 h-1 rounded-full bg-border"></span>
+							<span class="text-[10px] tracking-wider font-mono animate-pulse">PROCESSING...</span>
+						</div>
+						
+						<div class="relative group">
+							<div class="relative px-5 py-4 bg-card/50 backdrop-blur-sm border border-border/50 shadow-sm flex items-center gap-3">
+								<Loader2 class="w-4 h-4 text-primary animate-spin" />
+								<span class="text-[13px] text-muted-foreground tracking-widest uppercase">Executing Task</span>
+								
+								<div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary/50 -mt-px -ml-px"></div>
+								<div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary/50 -mb-px -mr-px"></div>
+							</div>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</div>
 		
@@ -257,15 +369,16 @@
 					<textarea 
 						bind:value={input}
 						onkeydown={handleKeydown}
-						placeholder="TYPE COMMAND OR QUERY..." 
-						class="w-full max-h-40 min-h-11 bg-transparent resize-none border-0 focus:ring-0 py-3 pr-3 pl-8 text-[13px] md:text-sm placeholder:text-muted-foreground/40 placeholder:tracking-widest placeholder:uppercase outline-none scrollbar-thin overflow-y-auto"
+						disabled={isWaiting}
+						placeholder={isWaiting ? "PROCESSING SECURE SIGNAL..." : "TYPE COMMAND OR QUERY..."} 
+						class="w-full max-h-40 min-h-11 bg-transparent resize-none border-0 focus:ring-0 py-3 pr-3 pl-8 text-[13px] md:text-sm placeholder:text-muted-foreground/40 placeholder:tracking-widest placeholder:uppercase outline-none scrollbar-thin overflow-y-auto disabled:opacity-50"
 						rows="1"
 					></textarea>
 					
 					<div class="flex items-center justify-center p-1 shrink-0 h-11 w-11 z-10">
 						<button 
 							type="submit" 
-							disabled={!input.trim()}
+							disabled={!input.trim() || isWaiting}
 							class="w-9 h-9 flex items-center justify-center rounded-sm bg-foreground text-background hover:bg-primary hover:text-primary-foreground disabled:opacity-30 disabled:hover:bg-foreground disabled:hover:text-background transition-all"
 						>
 							<Send class="w-4 h-4" />
@@ -364,20 +477,40 @@
 							<div class="bg-muted/30 border border-border rounded-sm p-3 grid grid-cols-2 gap-4">
 								<div class="flex flex-col">
 									<span class="text-[9px] text-muted-foreground uppercase opacity-70 mb-1">Model Engine</span>
-									<span class="text-xs font-mono text-foreground font-medium truncate">claude-3-7-sonnet</span>
+									<span class="text-xs font-mono text-foreground font-medium truncate" title={agentStatus.model}>{agentStatus.model}</span>
 								</div>
 								<div class="flex flex-col">
-									<span class="text-[9px] text-muted-foreground uppercase opacity-70 mb-1">Context Window</span>
-									<span class="text-xs font-mono text-amber-400 font-medium whitespace-nowrap">200K Tokens</span>
+									<span class="text-[9px] text-muted-foreground uppercase opacity-70 mb-1">Provider</span>
+									<span class="text-xs font-mono text-amber-400 font-medium whitespace-nowrap uppercase">{agentStatus.provider}</span>
 								</div>
 								<div class="flex flex-col">
-									<span class="text-[9px] text-muted-foreground uppercase opacity-70 mb-1">Mode</span>
-									<span class="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded-sm w-max uppercase font-bold tracking-wider">Autonomous</span>
+									<span class="text-[9px] text-muted-foreground uppercase opacity-70 mb-1">Runtime</span>
+									<span class="text-[10px] px-1.5 py-0.5 {agentStatus.running ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'} rounded-sm w-max uppercase font-bold tracking-wider">{agentStatus.running ? 'ACTIVE' : 'IDLE'}</span>
 								</div>
 								<div class="flex flex-col">
-									<span class="text-[9px] text-muted-foreground uppercase opacity-70 mb-1">Response Time</span>
-									<span class="text-xs font-mono text-foreground font-medium">~1.2s avg</span>
+									<span class="text-[9px] text-muted-foreground uppercase opacity-70 mb-1">Loaded Tools</span>
+									<span class="text-xs font-mono text-foreground font-medium">{agentTools.length} Modules</span>
 								</div>
+							</div>
+						</div>
+
+						<!-- Tool Registry -->
+						<div class="space-y-3 pt-2">
+							<div class="text-[10px] uppercase text-muted-foreground/80 font-bold tracking-[0.2em] mb-2 flex items-center gap-2">
+								<Wrench class="w-3 h-3" />
+								<span>Tool Registry</span>
+							</div>
+							
+							<div class="space-y-2">
+								{#each agentTools as tool (tool.name)}
+									<div class="bg-muted/20 border border-border/50 rounded-sm p-2 flex flex-col gap-1 transition-colors hover:bg-muted/40">
+										<div class="flex items-center justify-between">
+											<span class="text-xs font-bold text-primary tracking-wide font-mono">{tool.name}</span>
+											<span class="text-[8px] uppercase tracking-widest px-1.5 py-0.5 bg-background border border-border/50 rounded-sm text-muted-foreground">{tool.category}</span>
+										</div>
+										<span class="text-[11px] text-muted-foreground/80 leading-snug">{tool.description}</span>
+									</div>
+								{/each}
 							</div>
 						</div>
 					</div>
@@ -386,3 +519,6 @@
 		</aside>
 	{/if}
 </div>
+
+<!-- Render System Logs Modal -->
+<SystemLogs bind:isOpen={isLogsOpen} />
