@@ -6,88 +6,70 @@ Desktop GUI for ZeroClaw, built with `Tauri + SvelteKit`.
 
 - `src/`: SvelteKit frontend
 - `src-tauri/`: Tauri Rust backend
-- `crates/zeroclaw/`: ZeroClaw upstream (git submodule)
+- `src-tauri/binaries/`: zeroclaw 嵌入式二进制（构建时由脚本下载或本地编译生成）
+- `crates/zeroclaw/`: 可选 git submodule，仅当 `ZEROCLAW_BUILD_FROM_SOURCE=1` 时用于本地编译 zeroclaw
 
 ## Dependency Strategy
 
-This project uses:
+本项目**不再**通过 Cargo 依赖 zeroclaw 库，改为：
 
-- **Git submodule** for `crates/zeroclaw`
-- **Path dependency** from workspace/Tauri to local ZeroClaw code
+- **嵌入 zeroclaw 二进制**：作为 Tauri sidecar，在应用启动时执行 `zeroclaw gateway`。
+- **Gateway HTTP API**：配置、状态、工具列表等均通过 zeroclaw 提供的 REST API（如 `GET/PUT /api/config`、`GET /api/status`、`GET /api/tools`）访问，并配合配对 token（`POST /pair`）认证。
 
-Why:
-
-1. Local cross-repo debugging is faster.
-2. GUI and ZeroClaw can be patched together.
-3. Version is pinned by submodule commit.
+构建时默认从 [zeroclaw Releases](https://github.com/zeroclaw-labs/zeroclaw/releases) 下载当前平台的二进制；若需从源码编译，可设置 `ZEROCLAW_BUILD_FROM_SOURCE=1` 并确保已执行 `git submodule update --init crates/zeroclaw`。
 
 ## Clone and Setup
 
-Clone with submodule:
-
 ```bash
-git clone --recurse-submodules <repo-url>
-```
-
-If already cloned:
-
-```bash
-git submodule update --init --recursive
-```
-
-Install frontend deps:
-
-```bash
+git clone <repo-url>
+cd z-claw
 pnpm install
+```
+
+若需本地从源码编译 zeroclaw（可选）：
+
+```bash
+git submodule update --init crates/zeroclaw
 ```
 
 ## Daily Commands
 
-Update submodule to recorded commit:
+构建前会自动执行 `pnpm run ensure-zeroclaw` 以准备 sidecar 二进制；也可手动执行：
 
 ```bash
-git submodule update --init --recursive
+pnpm run ensure-zeroclaw
 ```
 
-Pull latest upstream into submodule (when you intentionally upgrade):
-
-```bash
-git submodule update --remote --merge crates/zeroclaw
-```
-
-Run app:
+运行应用：
 
 ```bash
 pnpm tauri dev
 ```
 
-## Verify Workspace
+打包：
 
-Use one of:
+```bash
+pnpm tauri build
+```
+
+## Verify
 
 ```bash
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
+或：
+
 ```bash
 pnpm tauri dev
 ```
 
-## Submodule Commit Workflow
+## 使用外部 Gateway（可选）
 
-When `crates/zeroclaw` changes:
-
-1. Commit inside submodule first (if needed).
-2. Return to root repo.
-3. Commit the updated submodule pointer in root repo.
-
-Quick check:
+若本机已单独运行 zeroclaw gateway，可不启动内嵌进程，仅作客户端：
 
 ```bash
-git submodule status
+ZEROCLAW_USE_EXTERNAL_GATEWAY=1 pnpm tauri dev
 ```
 
-## Notes
-
-- Do not replace submodule with ad-hoc copied code.
-- Pin by commit (default submodule behavior), not floating branch references.
+需确保已配对（如曾通过桌面端完成过一次配对，token 保存在 `~/.config/zeroclaw/desktop-token`）。

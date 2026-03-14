@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "ensure-zeroclaw": "node scripts/ensure-zeroclaw.js",
+    "build": "pnpm run ensure-zeroclaw && vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

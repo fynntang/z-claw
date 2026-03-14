@@ -21,6 +21,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+# zeroclaw sidecar binaries (fetched or built by ensure-zeroclaw script)
+src-tauri/binaries/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
