@@ -1,10 +1,11 @@
 //! Configuration bridge for Z-Claw desktop.
 //!
-//! Uses zeroclaw::Config and default_config_and_workspace_dirs() for paths.
-//! GUI fields map to Config top-level: api_key, api_url, default_provider, default_model, default_temperature.
+//! Uses local config/workspace paths (~/.zeroclaw) and zeroclaw::Config only for parsing/defaults.
+//! Does not modify zeroclaw; autonomy 等通过 TOML 读写，不依赖 zeroclaw::AutonomyLevel。
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use toml::Value;
 
 /// GUI-facing configuration structure (subset of zeroclaw::Config used by settings UI).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,25 +63,19 @@ impl Default for AppConfig {
             parallel_tools: c.agent.parallel_tools,
             memory_backend: c.memory.backend.clone(),
             memory_auto_save: c.memory.auto_save,
-            autonomy_level: autonomy_level_to_string(&c.autonomy.level),
+            autonomy_level: "supervised".into(),
         }
     }
 }
 
-fn autonomy_level_to_string(level: &zeroclaw::AutonomyLevel) -> String {
-    match level {
-        zeroclaw::AutonomyLevel::ReadOnly => "readonly".into(),
-        zeroclaw::AutonomyLevel::Supervised => "supervised".into(),
-        zeroclaw::AutonomyLevel::Full => "full".into(),
-    }
-}
-
-fn parse_autonomy_level(s: &str) -> zeroclaw::AutonomyLevel {
-    match s.trim().to_lowercase().as_str() {
-        "read_only" | "readonly" => zeroclaw::AutonomyLevel::ReadOnly,
-        "full" => zeroclaw::AutonomyLevel::Full,
-        _ => zeroclaw::AutonomyLevel::Supervised,
-    }
+/// 返回 (config_dir, workspace_dir)，与 zeroclaw 约定一致：~/.zeroclaw 与 ~/.zeroclaw/workspace。
+/// 不依赖 zeroclaw 内部 API，便于在未修改 zeroclaw 时使用。
+fn get_zeroclaw_dirs_local() -> (PathBuf, PathBuf) {
+    let config_dir = dirs::home_dir()
+        .map(|h| h.join(".zeroclaw"))
+        .unwrap_or_else(|| PathBuf::from(".").join("zeroclaw"));
+    let workspace_dir = config_dir.join("workspace");
+    (config_dir, workspace_dir)
 }
 
 /// Configuration validation result.
@@ -90,15 +85,10 @@ pub struct ValidationResult {
     pub errors: Vec<String>,
 }
 
-/// Get (config_dir, workspace_dir) from zeroclaw default_config_and_workspace_dirs().
-fn get_zeroclaw_dirs() -> (PathBuf, PathBuf) {
-    zeroclaw::config::schema::default_config_and_workspace_dirs()
-        .unwrap_or_else(|_| (PathBuf::from(".").join("zeroclaw"), PathBuf::from(".").join("zeroclaw").join("workspace")))
-}
 
 /// Get the config file path (~/.zeroclaw/config.toml by default).
 pub fn get_config_path() -> PathBuf {
-    get_zeroclaw_dirs().0.join("config.toml")
+    get_zeroclaw_dirs_local().0.join("config.toml")
 }
 
 /// Read configuration from ZeroClaw config file.
@@ -115,7 +105,12 @@ pub fn get_config() -> Result<AppConfig, String> {
     let contents = std::fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read config file: {}", e))?;
 
-    // Parse TOML
+    // 从 TOML 读取 autonomy.level（不依赖 zeroclaw::AutonomyLevel）
+    let autonomy_level: String = toml::from_str::<Value>(&contents)
+        .ok()
+        .and_then(|v| v.get("autonomy").and_then(|a| a.get("level")).and_then(|l| l.as_str().map(String::from)))
+        .unwrap_or_else(|| "supervised".into());
+
     let config: zeroclaw::Config =
         toml::from_str(&contents).map_err(|e| format!("Failed to parse config file: {}", e))?;
 
@@ -143,7 +138,7 @@ pub fn get_config() -> Result<AppConfig, String> {
         parallel_tools: config.agent.parallel_tools,
         memory_backend: config.memory.backend.clone(),
         memory_auto_save: config.memory.auto_save,
-        autonomy_level: autonomy_level_to_string(&config.autonomy.level),
+        autonomy_level,
     };
 
     Ok(app_config)
@@ -161,47 +156,66 @@ pub fn set_config(config: AppConfig) -> Result<(), String> {
         ));
     }
 
-    let (config_dir, _) = get_zeroclaw_dirs();
+    let (config_dir, _) = get_zeroclaw_dirs_local();
     let config_path = get_config_path();
 
-    // Create config directory if it doesn't exist
     if !config_dir.exists() {
         std::fs::create_dir_all(&config_dir)
             .map_err(|e| format!("Failed to create config directory: {}", e))?;
     }
 
-    // Read existing config or create default
-    let mut zeroclaw_config = if config_path.exists() {
+    // 以 TOML Value 读写，避免依赖 zeroclaw 内部类型（如 AutonomyLevel）
+    let mut value: Value = if config_path.exists() {
         let contents = std::fs::read_to_string(&config_path)
             .map_err(|e| format!("Failed to read existing config: {}", e))?;
-        toml::from_str(&contents).unwrap_or_else(|_| zeroclaw::Config::default())
+        toml::from_str(&contents).unwrap_or_else(|_| Value::Table(toml::map::Map::new()))
     } else {
-        zeroclaw::Config::default()
+        Value::Table(toml::map::Map::new())
     };
 
-    // Update GUI-relevant fields
-    zeroclaw_config.api_key = Some(config.api_key);
-    zeroclaw_config.api_url = Some(config.api_url);
-    zeroclaw_config.default_provider = Some(config.provider);
-    zeroclaw_config.default_model = Some(config.model);
-    zeroclaw_config.default_temperature = config.temperature;
-    zeroclaw_config.provider_timeout_secs = config.provider_timeout_secs;
-    zeroclaw_config.api_path = config.api_path.clone();
+    let table = value.as_table_mut().ok_or("Config is not a TOML table")?;
 
-    zeroclaw_config.agent.max_tool_iterations = config.max_tool_iterations as usize;
-    zeroclaw_config.agent.max_history_messages = config.max_history_messages as usize;
-    zeroclaw_config.agent.compact_context = config.compact_context;
-    zeroclaw_config.agent.parallel_tools = config.parallel_tools;
+    // 顶层字段
+    table.insert("api_key".into(), Value::String(config.api_key));
+    table.insert("api_url".into(), Value::String(config.api_url));
+    table.insert("default_provider".into(), Value::String(config.provider));
+    table.insert("default_model".into(), Value::String(config.model));
+    table.insert("default_temperature".into(), Value::Float(config.temperature));
+    table.insert("provider_timeout_secs".into(), Value::Integer(config.provider_timeout_secs as i64));
+    if let Some(p) = &config.api_path {
+        table.insert("api_path".into(), Value::String(p.clone()));
+    } else {
+        table.remove("api_path");
+    }
 
-    zeroclaw_config.memory.backend = config.memory_backend.clone();
-    zeroclaw_config.memory.auto_save = config.memory_auto_save;
+    // [agent]
+    let agent = table.entry("agent").or_insert_with(|| Value::Table(toml::map::Map::new()));
+    if let Some(t) = agent.as_table_mut() {
+        t.insert("max_tool_iterations".into(), Value::Integer(config.max_tool_iterations as i64));
+        t.insert("max_history_messages".into(), Value::Integer(config.max_history_messages as i64));
+        t.insert("compact_context".into(), Value::Boolean(config.compact_context));
+        t.insert("parallel_tools".into(), Value::Boolean(config.parallel_tools));
+    }
 
-    zeroclaw_config.autonomy.level = parse_autonomy_level(&config.autonomy_level);
+    // [memory]
+    let memory = table.entry("memory").or_insert_with(|| Value::Table(toml::map::Map::new()));
+    if let Some(t) = memory.as_table_mut() {
+        t.insert("backend".into(), Value::String(config.memory_backend));
+        t.insert("auto_save".into(), Value::Boolean(config.memory_auto_save));
+    }
 
-    zeroclaw_config.secrets.encrypt = true;
+    // [autonomy] level：zeroclaw 使用小写 "readonly" | "supervised" | "full"
+    let autonomy_str = match config.autonomy_level.trim().to_lowercase().as_str() {
+        "read_only" | "readonly" => "readonly",
+        "full" => "full",
+        _ => "supervised",
+    };
+    let autonomy = table.entry("autonomy").or_insert_with(|| Value::Table(toml::map::Map::new()));
+    if let Some(t) = autonomy.as_table_mut() {
+        t.insert("level".into(), Value::String(autonomy_str.into()));
+    }
 
-    // Serialize to TOML
-    let toml_contents = toml::to_string_pretty(&zeroclaw_config)
+    let toml_contents = toml::to_string_pretty(&value)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
 
     // Write to file

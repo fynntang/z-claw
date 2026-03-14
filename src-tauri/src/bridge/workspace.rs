@@ -1,15 +1,14 @@
 //! Workspace bridge: read ZeroClaw workspace directory and key files (IDENTITY.md, USER.md, etc.).
-//! Path = config_dir/zeroclaw/workspace (e.g. ~/.config/zeroclaw/workspace or %APPDATA%/zeroclaw/workspace).
+//! 使用本地路径 ~/.zeroclaw/workspace，不依赖 zeroclaw 内部 API。
 
 use serde::Serialize;
 use std::path::PathBuf;
 
-/// ZeroClaw workspace root directory.
+/// ZeroClaw workspace 根目录（与 zeroclaw 约定一致：~/.zeroclaw/workspace）。
 fn get_workspace_dir() -> PathBuf {
-    dirs::config_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("zeroclaw")
-        .join("workspace")
+    dirs::home_dir()
+        .map(|h| h.join(".zeroclaw").join("workspace"))
+        .unwrap_or_else(|| PathBuf::from(".").join("zeroclaw").join("workspace"))
 }
 
 /// One entry in a directory listing.
