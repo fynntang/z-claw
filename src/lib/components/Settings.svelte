@@ -1,9 +1,9 @@
 <script lang="ts">
 	/**
-	 * Settings modal — ZeroClaw config only.
-	 * Maps 1:1 to backend AppConfig: api_key, api_url, provider, model, temperature.
+	 * Settings modal — ZeroClaw config.
+	 * Maps to backend AppConfig: provider, agent, memory, autonomy, timeout, etc.
 	 */
-	import { X, KeyRound, Link2, Cpu, Save, AlertCircle, Sliders } from '@lucide/svelte';
+	import { X, KeyRound, Link2, Cpu, Save, Sliders, Timer, Bot, Database, Shield } from '@lucide/svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import { Dialog } from 'bits-ui';
 
@@ -44,15 +44,33 @@
 		model: string;
 		temperature: number;
 		local_model_path: string | null;
+		provider_timeout_secs: number;
+		api_path: string | null;
+		max_tool_iterations: number;
+		max_history_messages: number;
+		compact_context: boolean;
+		parallel_tools: boolean;
+		memory_backend: string;
+		memory_auto_save: boolean;
+		autonomy_level: string;
 	};
 
 	let config = $state<ConfigState>({
 		api_key: '',
-		api_url: 'https://api.openai.com/v1',
-		provider: 'openai',
-		model: 'gpt-4o-mini',
+		api_url: 'https://openrouter.ai/api/v1',
+		provider: 'openrouter',
+		model: 'anthropic/claude-sonnet-4.6',
 		temperature: 0.7,
-		local_model_path: null
+		local_model_path: null,
+		provider_timeout_secs: 120,
+		api_path: null,
+		max_tool_iterations: 10,
+		max_history_messages: 50,
+		compact_context: false,
+		parallel_tools: false,
+		memory_backend: 'sqlite',
+		memory_auto_save: true,
+		autonomy_level: 'supervised'
 	});
 
 	let providersList = $state<UIProviderInfo[]>([]);
@@ -239,6 +257,125 @@
 							<span>精确</span>
 							<span>均衡</span>
 							<span>创意</span>
+						</div>
+					</div>
+
+					<!-- 请求与超时 -->
+					<div class="pt-2 border-t border-border space-y-3">
+						<h3 class="text-sm font-medium text-foreground flex items-center gap-1.5">
+							<Timer class="w-3.5 h-3.5 text-muted-foreground" />
+							请求与超时
+						</h3>
+						<div class="space-y-2">
+							<label for="settings-timeout" class="text-sm text-muted-foreground block">API 超时（秒）</label>
+							<input
+								id="settings-timeout"
+								type="number"
+								min="1"
+								max="600"
+								bind:value={config.provider_timeout_secs}
+								class="w-full h-10 px-3 rounded-lg border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+							/>
+						</div>
+						<div class="space-y-2">
+							<label for="settings-api-path" class="text-sm text-muted-foreground block">API 路径后缀（可选）</label>
+							<input
+								id="settings-api-path"
+								type="text"
+								bind:value={config.api_path}
+								placeholder="/v1/chat/completions"
+								class="w-full h-10 px-3 rounded-lg border border-input bg-background text-foreground text-sm font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring"
+							/>
+						</div>
+					</div>
+
+					<!-- Agent -->
+					<div class="pt-2 border-t border-border space-y-3">
+						<h3 class="text-sm font-medium text-foreground flex items-center gap-1.5">
+							<Bot class="w-3.5 h-3.5 text-muted-foreground" />
+							Agent
+						</h3>
+						<div class="grid grid-cols-2 gap-3">
+							<div class="space-y-2">
+								<label for="settings-max-tool-iterations" class="text-sm text-muted-foreground block">最大工具调用次数</label>
+								<input
+									id="settings-max-tool-iterations"
+									type="number"
+									min="1"
+									max="100"
+									bind:value={config.max_tool_iterations}
+									class="w-full h-10 px-3 rounded-lg border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+								/>
+							</div>
+							<div class="space-y-2">
+								<label for="settings-max-history" class="text-sm text-muted-foreground block">最大历史消息数</label>
+								<input
+									id="settings-max-history"
+									type="number"
+									min="1"
+									max="500"
+									bind:value={config.max_history_messages}
+									class="w-full h-10 px-3 rounded-lg border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+								/>
+							</div>
+						</div>
+						<div class="flex flex-col gap-2">
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input type="checkbox" bind:checked={config.compact_context} class="rounded border-input accent-primary" />
+								<span class="text-sm text-muted-foreground">压缩上下文 (compact_context)</span>
+							</label>
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input type="checkbox" bind:checked={config.parallel_tools} class="rounded border-input accent-primary" />
+								<span class="text-sm text-muted-foreground">并行工具调用 (parallel_tools)</span>
+							</label>
+						</div>
+					</div>
+
+					<!-- 记忆 -->
+					<div class="pt-2 border-t border-border space-y-3">
+						<h3 class="text-sm font-medium text-foreground flex items-center gap-1.5">
+							<Database class="w-3.5 h-3.5 text-muted-foreground" />
+							记忆
+						</h3>
+						<div class="space-y-2">
+							<label for="settings-memory-backend" class="text-sm text-muted-foreground block">后端</label>
+							<select
+								id="settings-memory-backend"
+								bind:value={config.memory_backend}
+								class="w-full h-10 px-3 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+							>
+								<option value="sqlite">sqlite</option>
+								<option value="markdown">markdown</option>
+								<option value="none">none</option>
+								<option value="lucid">lucid</option>
+								<option value="postgres">postgres</option>
+								<option value="qdrant">qdrant</option>
+							</select>
+						</div>
+						<label class="flex items-center gap-2 cursor-pointer">
+							<input type="checkbox" bind:checked={config.memory_auto_save} class="rounded border-input accent-primary" />
+							<span class="text-sm text-muted-foreground">自动保存 (auto_save)</span>
+						</label>
+					</div>
+
+					<!-- 自主性 -->
+					<div class="pt-2 border-t border-border space-y-3">
+						<h3 class="text-sm font-medium text-foreground flex items-center gap-1.5">
+							<Shield class="w-3.5 h-3.5 text-muted-foreground" />
+							自主性
+						</h3>
+						<div class="space-y-2">
+							<label for="settings-autonomy" class="text-sm text-muted-foreground block">级别</label>
+							<select
+								id="settings-autonomy"
+								bind:value={config.autonomy_level}
+								class="w-full h-10 px-3 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+							>
+								<option value="readonly">只读 (readonly)</option>
+								<option value="supervised">受监督 (supervised)</option>
+								<option value="full">完全 (full)</option>
+							</select>
+							<p class="text-xs text-muted-foreground">控制 Agent 可执行操作的权限范围。</p>
 						</div>
 					</div>
 				{/if}
