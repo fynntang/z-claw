@@ -1,2 +1,0 @@
-# Submodule placeholder. Run: git submodule update --init crates/zeroclaw
-# for local zeroclaw build (ZEROCLAW_BUILD_FROM_SOURCE=1).
