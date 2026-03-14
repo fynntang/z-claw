@@ -1,3 +1,0 @@
-[submodule "crates/zeroclaw"]
-	path = crates/zeroclaw
-	url = git@github.com:zeroclaw-labs/zeroclaw.git
