@@ -6,7 +6,10 @@ mod agent;
 mod bridge;
 
 use agent::AgentResponse;
-use bridge::{AppConfig, ChatInput, DesktopBridge, LogEntry, LogLevel, RuntimeStatus, ToolInfo, ValidationResult};
+use bridge::{
+    AppConfig, ChatInput, DesktopBridge, LogEntry, LogLevel, RuntimeStatus, ToolInfo, ValidationResult,
+    WorkspaceEntry,
+};
 
 /// Greet command - example from Tauri template
 #[tauri::command]
@@ -104,6 +107,24 @@ async fn logs_clear() {
     bridge::logs::clear_logs().await
 }
 
+/// Get ZeroClaw workspace root path (e.g. ~/.config/zeroclaw/workspace).
+#[tauri::command]
+fn workspace_path() -> String {
+    bridge::workspace::workspace_path()
+}
+
+/// List directory under workspace. subpath: "" for root, or "memory", "memory/2025-01" etc.
+#[tauri::command]
+fn workspace_list_dir(subpath: Option<String>) -> Result<Vec<WorkspaceEntry>, String> {
+    bridge::workspace::workspace_list_dir(subpath)
+}
+
+/// Read a file under workspace (e.g. "IDENTITY.md", "USER.md", "memory/2025-01-01.md").
+#[tauri::command]
+fn workspace_read_file(relative_path: String) -> Result<String, String> {
+    bridge::workspace::workspace_read_file(relative_path)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -118,7 +139,10 @@ pub fn run() {
             providers_list,
             tools_list,
             logs_tail,
-            logs_clear
+            logs_clear,
+            workspace_path,
+            workspace_list_dir,
+            workspace_read_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running ZClaw application");

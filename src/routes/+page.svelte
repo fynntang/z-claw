@@ -1,15 +1,18 @@
 <script lang="ts">
-	/** Single-agent chat UI — one assistant (ZeroClaw), one conversation area, optional tools panel. */
-	import { Send, Menu, Settings, Bot, TerminalSquare, Loader2, Wrench, Info, ChevronRight } from '@lucide/svelte';
+	/** Single-agent chat UI — one assistant (ZeroClaw), one conversation area, optional right panel (tools / agent detail / workspace). */
+	import { Send, Menu, Settings, Bot, TerminalSquare, Loader2, Wrench, Info, ChevronRight, User, FolderOpen } from '@lucide/svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import { tick, onMount } from 'svelte';
 	import SystemLogs from '$lib/components/SystemLogs.svelte';
 	import SettingsModal from '$lib/components/Settings.svelte';
 
-	let showToolsPanel = $state(false);
-	function toggleToolsPanel() {
-		showToolsPanel = !showToolsPanel;
+	type RightPanelMode = 'tools' | 'agent' | 'workspace';
+	let rightPanelMode = $state<RightPanelMode | null>(null);
+
+	function openRightPanel(mode: RightPanelMode) {
+		rightPanelMode = rightPanelMode === mode ? null : mode;
 	}
+	const showToolsPanel = $derived(rightPanelMode !== null);
 
 	type Message = { role: string; content: string; timestamp: string };
 	let messages = $state<Message[]>([
@@ -34,6 +37,70 @@
 
 	let agentStatus = $state<RuntimeStatus>({ running: false, provider: 'loading...', model: 'loading...' });
 	let agentTools = $state<ToolInfo[]>([]);
+
+	// Agent 详情: workspace 下的 IDENTITY.md, USER.md 等
+	const AGENT_FILES = [
+		{ id: 'IDENTITY.md', label: 'IDENTITY' },
+		{ id: 'USER.md', label: 'USER' },
+		{ id: 'SOUL.md', label: 'SOUL' },
+		{ id: 'AGENTS.md', label: 'AGENTS' },
+		{ id: 'MEMORY.md', label: 'MEMORY' }
+	] as const;
+	let agentDetailTab = $state('IDENTITY.md');
+	let agentFileContent = $state<Record<string, string>>({});
+	let agentDetailLoading = $state(false);
+
+	async function loadAgentDetail() {
+		agentDetailLoading = true;
+		const next: Record<string, string> = {};
+		for (const f of AGENT_FILES) {
+			try {
+				next[f.id] = await invoke<string>('workspace_read_file', { relativePath: f.id });
+			} catch {
+				next[f.id] = '[文件不存在或无法读取]';
+			}
+		}
+		agentFileContent = next;
+		agentDetailLoading = false;
+	}
+
+	// Workspace 文件目录
+	let workspacePathStr = $state('');
+	let workspaceEntries = $state<{ name: string; is_dir: boolean }[]>([]);
+	let workspaceExpanded = $state<Record<string, { name: string; is_dir: boolean }[]>>({});
+	let workspaceLoading = $state(false);
+
+	async function loadWorkspaceRoot() {
+		workspaceLoading = true;
+		try {
+			workspacePathStr = await invoke<string>('workspace_path');
+			workspaceEntries = await invoke<{ name: string; is_dir: boolean }[]>('workspace_list_dir', { subpath: null });
+		} catch (e) {
+			workspacePathStr = String(e);
+			workspaceEntries = [];
+		}
+		workspaceLoading = false;
+	}
+
+	async function toggleWorkspaceDir(subpath: string) {
+		if (workspaceExpanded[subpath]) {
+			const next = { ...workspaceExpanded };
+			delete next[subpath];
+			workspaceExpanded = next;
+			return;
+		}
+		try {
+			const entries = await invoke<{ name: string; is_dir: boolean }[]>('workspace_list_dir', { subpath });
+			workspaceExpanded = { ...workspaceExpanded, [subpath]: entries };
+		} catch {
+			// ignore
+		}
+	}
+
+	$effect(() => {
+		if (rightPanelMode === 'agent') loadAgentDetail();
+		if (rightPanelMode === 'workspace') loadWorkspaceRoot();
+	});
 
 	onMount(async () => {
 		try {
@@ -168,14 +235,35 @@
 				<span class="text-base font-semibold text-foreground truncate">ZClaw</span>
 				<span class="text-xs text-muted-foreground font-mono truncate hidden sm:inline">{agentStatus.provider} · {agentStatus.model}</span>
 			</div>
-			<button
-				type="button"
-				onclick={toggleToolsPanel}
-				class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors {showToolsPanel ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-			>
-				<Wrench class="w-4 h-4" />
-				<span class="hidden sm:inline">工具与状态</span>
-			</button>
+			<div class="flex items-center gap-1">
+				<button
+					type="button"
+					onclick={() => openRightPanel('tools')}
+					class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors {rightPanelMode === 'tools' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+					title="工具与状态"
+				>
+					<Wrench class="w-4 h-4" />
+					<span class="hidden sm:inline">工具与状态</span>
+				</button>
+				<button
+					type="button"
+					onclick={() => openRightPanel('agent')}
+					class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors {rightPanelMode === 'agent' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+					title="Agent 详情"
+				>
+					<User class="w-4 h-4" />
+					<span class="hidden sm:inline">Agent 详情</span>
+				</button>
+				<button
+					type="button"
+					onclick={() => openRightPanel('workspace')}
+					class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors {rightPanelMode === 'workspace' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+					title="Workspace 文件"
+				>
+					<FolderOpen class="w-4 h-4" />
+					<span class="hidden sm:inline">Workspace</span>
+				</button>
+			</div>
 		</header>
 		
 		<!-- Message List -->
@@ -244,51 +332,129 @@
 		</div>
 	</main>
 
-	<!-- Right panel: tools & status (single agent) -->
-	{#if showToolsPanel}
-		<aside class="w-72 shrink-0 border-l border-border bg-card/50 flex flex-col z-10">
+	<!-- Right panel: 工具与状态 / Agent 详情 / Workspace 文件 -->
+	{#if showToolsPanel && rightPanelMode}
+		<aside class="w-80 shrink-0 border-l border-border bg-card/50 flex flex-col z-10">
 			<div class="h-12 border-b border-border flex items-center justify-between px-4 shrink-0">
 				<span class="text-sm font-semibold text-foreground flex items-center gap-2">
-					<Info class="w-4 h-4 text-primary" />
-					状态与工具
+					{#if rightPanelMode === 'tools'}
+						<Info class="w-4 h-4 text-primary" />
+						状态与工具
+					{:else if rightPanelMode === 'agent'}
+						<User class="w-4 h-4 text-primary" />
+						Agent 详情
+					{:else}
+						<FolderOpen class="w-4 h-4 text-primary" />
+						Workspace 文件
+					{/if}
 				</span>
-				<button type="button" onclick={toggleToolsPanel} class="p-1.5 hover:bg-muted rounded-lg text-muted-foreground" aria-label="关闭">
+				<button type="button" onclick={() => (rightPanelMode = null)} class="p-1.5 hover:bg-muted rounded-lg text-muted-foreground" aria-label="关闭">
 					<ChevronRight class="w-4 h-4" />
 				</button>
 			</div>
-			<div class="flex-1 overflow-y-auto p-4 space-y-5">
-				<div class="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-					<h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">运行时</h4>
-					<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
-						<dt class="text-muted-foreground">Provider</dt>
-						<dd class="font-mono truncate" title={agentStatus.provider}>{agentStatus.provider}</dd>
-						<dt class="text-muted-foreground">Model</dt>
-						<dd class="font-mono truncate" title={agentStatus.model}>{agentStatus.model}</dd>
-						<dt class="text-muted-foreground">状态</dt>
-						<dd>
-							<span class="text-xs font-medium px-1.5 py-0.5 rounded {agentStatus.running ? 'bg-green-500/15 text-green-600 dark:text-green-400' : 'bg-muted text-muted-foreground'}">
-								{agentStatus.running ? '运行中' : '就绪'}
-							</span>
-						</dd>
-					</dl>
-				</div>
-				<div>
-					<h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-						<Wrench class="w-3.5 h-3.5" />
-						工具 ({agentTools.length})
-					</h4>
-					<ul class="space-y-2">
-						{#each agentTools as tool (tool.name)}
-							<li class="rounded-lg border border-border/60 bg-background/50 p-2.5">
-								<div class="flex items-center justify-between gap-2 mb-0.5">
-									<span class="text-xs font-mono font-medium text-foreground truncate">{tool.name}</span>
-									<span class="text-[10px] text-muted-foreground shrink-0">{tool.category}</span>
-								</div>
-								<p class="text-xs text-muted-foreground leading-snug line-clamp-2">{tool.description}</p>
-							</li>
-						{/each}
-					</ul>
-				</div>
+			<div class="flex-1 overflow-y-auto p-4 min-h-0">
+				{#if rightPanelMode === 'tools'}
+					<div class="space-y-5">
+						<div class="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+							<h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">运行时</h4>
+							<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+								<dt class="text-muted-foreground">Provider</dt>
+								<dd class="font-mono truncate" title={agentStatus.provider}>{agentStatus.provider}</dd>
+								<dt class="text-muted-foreground">Model</dt>
+								<dd class="font-mono truncate" title={agentStatus.model}>{agentStatus.model}</dd>
+								<dt class="text-muted-foreground">状态</dt>
+								<dd>
+									<span class="text-xs font-medium px-1.5 py-0.5 rounded {agentStatus.running ? 'bg-green-500/15 text-green-600 dark:text-green-400' : 'bg-muted text-muted-foreground'}">
+										{agentStatus.running ? '运行中' : '就绪'}
+									</span>
+								</dd>
+							</dl>
+						</div>
+						<div>
+							<h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+								<Wrench class="w-3.5 h-3.5" />
+								工具 ({agentTools.length})
+							</h4>
+							<ul class="space-y-2">
+								{#each agentTools as tool (tool.name)}
+									<li class="rounded-lg border border-border/60 bg-background/50 p-2.5">
+										<div class="flex items-center justify-between gap-2 mb-0.5">
+											<span class="text-xs font-mono font-medium text-foreground truncate">{tool.name}</span>
+											<span class="text-[10px] text-muted-foreground shrink-0">{tool.category}</span>
+										</div>
+										<p class="text-xs text-muted-foreground leading-snug line-clamp-2">{tool.description}</p>
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</div>
+				{:else if rightPanelMode === 'agent'}
+					<div class="flex flex-col h-full">
+						<div class="flex gap-1 border-b border-border pb-2 mb-2 shrink-0 overflow-x-auto">
+							{#each AGENT_FILES as f (f.id)}
+								<button
+									type="button"
+									onclick={() => (agentDetailTab = f.id)}
+									class="px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors {agentDetailTab === f.id ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-muted'}"
+								>
+									{f.label}
+								</button>
+							{/each}
+						</div>
+						{#if agentDetailLoading}
+							<div class="flex-1 flex items-center justify-center text-muted-foreground text-sm">加载中…</div>
+						{:else}
+							<pre class="flex-1 overflow-auto p-3 rounded-lg bg-muted/20 border border-border text-xs font-mono whitespace-pre-wrap break-words">{agentFileContent[agentDetailTab] ?? '[未加载]'}</pre>
+						{/if}
+					</div>
+				{:else if rightPanelMode === 'workspace'}
+					<div class="flex flex-col gap-3">
+						<p class="text-xs text-muted-foreground font-mono truncate" title={workspacePathStr}>{workspacePathStr}</p>
+						{#if workspaceLoading}
+							<div class="text-sm text-muted-foreground">加载中…</div>
+						{:else}
+							<ul class="space-y-0.5 font-mono text-sm">
+								{#each workspaceEntries as entry (entry.name)}
+									{#if entry.is_dir}
+										<li>
+											<button
+												type="button"
+												onclick={() => toggleWorkspaceDir(entry.name)}
+												class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted text-left"
+											>
+												<span class="text-muted-foreground">{workspaceExpanded[entry.name] ? '▼' : '▶'}</span>
+												<FolderOpen class="w-3.5 h-3.5 text-primary/80" />
+												{entry.name}
+											</button>
+											{#if workspaceExpanded[entry.name]}
+												<ul class="pl-5 border-l border-border/50 ml-1 space-y-0.5 mt-0.5">
+													{#each workspaceExpanded[entry.name] as child (child.name)}
+														<li class="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 text-muted-foreground">
+															{#if child.is_dir}
+																<FolderOpen class="w-3 h-3" />
+															{:else}
+																<span class="w-3 h-3 text-center text-[10px]">📄</span>
+															{/if}
+															{child.name}
+														</li>
+													{/each}
+												</ul>
+											{/if}
+										</li>
+									{:else}
+										<li class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 pl-6">
+											<span class="text-[10px]">📄</span>
+											{entry.name}
+										</li>
+									{/if}
+								{/each}
+								{#if workspaceEntries.length === 0 && !workspaceLoading}
+									<li class="text-muted-foreground text-xs py-2">目录为空或路径无效</li>
+								{/if}
+							</ul>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</aside>
 	{/if}
