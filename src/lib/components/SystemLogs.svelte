@@ -91,9 +91,9 @@
 </script>
 
 {#if isOpen}
-	<div class="fixed inset-0 z-200 flex items-center justify-center bg-background/80 dark:bg-black/60 backdrop-blur-md animate-in fade-in duration-200 font-mono">
+	<div class="fixed inset-0 z-200 flex items-center justify-center bg-background/80 backdrop-blur-md animate-in fade-in duration-200 font-mono">
 		<!-- Modal Container -->
-		<div class="w-full max-w-5xl h-[85vh] max-h-[800px] bg-[#0a0a0a]/95 border border-border/50 rounded-[4px] shadow-2xl flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-300 slide-in-from-bottom-8">
+		<div class="w-full max-w-5xl h-[85vh] max-h-[800px] bg-background/95 border border-border shadow-2xl flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-300 slide-in-from-bottom-8 rounded-[4px]">
 			
 			<!-- Decorative Top Bar (Scanner effect) -->
 			<div class="absolute top-0 left-0 w-full h-px bg-primary/20">
@@ -101,7 +101,7 @@
 			</div>
 
 			<!-- Header -->
-			<div class="h-12 border-b border-border/50 flex items-center justify-between px-4 shrink-0 bg-[#0a0a0a]">
+			<div class="h-12 border-b border-border/60 flex items-center justify-between px-4 shrink-0 bg-muted/30 dark:bg-muted/10">
 				<div class="flex items-center gap-3">
 					<Terminal class="w-4 h-4 text-primary" />
 					<h2 class="text-[11px] font-bold tracking-[0.3em] uppercase text-foreground/80">Daemon System Logs</h2>
@@ -136,7 +136,7 @@
 			<div 
 				bind:this={logsContainer}
 				onscroll={handleScroll}
-				class="flex-1 overflow-y-auto p-4 bg-[#0a0a0a] text-[12px] font-mono leading-relaxed tracking-wide scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20"
+				class="flex-1 overflow-y-auto p-4 bg-card/50 text-[12px] font-mono leading-relaxed tracking-wide scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20"
 			>
 				{#if logs.length === 0}
 					<div class="flex flex-col items-center justify-center h-full text-muted-foreground/30 gap-4 opacity-50 select-none">
@@ -146,8 +146,8 @@
 				{:else}
 					<div class="space-y-1">
 						{#each logs as log (log.id)}
-							<div class="flex gap-3 hover:bg-white/5 px-2 py-1 -mx-2 rounded-sm transition-colors group">
-								<div class="text-muted-foreground/50 shrink-0 w-[140px] tabular-nums font-bold">
+							<div class="flex gap-3 hover:bg-muted/50 dark:hover:bg-white/5 px-2 py-1 -mx-2 rounded-sm transition-colors group">
+								<div class="text-muted-foreground/60 shrink-0 w-[140px] tabular-nums font-bold">
 									[{log.timestamp}]
 								</div>
 								
@@ -169,7 +169,7 @@
 			</div>
 
 			<!-- Footer -->
-			<div class="h-8 border-t border-border/50 bg-[#0a0a0a] flex items-center justify-between px-3 text-[10px] text-muted-foreground uppercase tracking-widest shrink-0">
+			<div class="h-8 border-t border-border/60 bg-muted/30 dark:bg-muted/10 flex items-center justify-between px-3 text-[10px] text-muted-foreground uppercase tracking-widest shrink-0">
 				<div>ZCLAW / SYS_LOGS / V.0.4.1</div>
 				<div class="flex items-center gap-3">
 					<label class="flex items-center gap-1.5 cursor-pointer hover:text-foreground transition-colors">

@@ -3,6 +3,7 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { tick, onMount } from 'svelte';
 	import SystemLogs from '$lib/components/SystemLogs.svelte';
+	import SettingsModal from '$lib/components/Settings.svelte';
 	
 	// Right sidebar state management
 	let rightPanelActive = $state<'none' | 'files' | 'agent'>('none');
@@ -21,6 +22,7 @@
 	]);
 	
 	let isLogsOpen = $state(false);
+	let isSettingsOpen = $state(false);
 
 	// Backend stats
 	interface RuntimeStatus {
@@ -197,9 +199,6 @@
 				<button class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 rounded-sm border-l-2 border-transparent text-left text-muted-foreground hover:text-foreground transition-all group">
 					<span class="truncate pl-7 text-[13px]"># bot-general</span>
 				</button>
-				<button onclick={() => { isLogsOpen = true; }} class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 rounded-sm border-l-2 border-transparent text-left text-muted-foreground hover:text-foreground transition-all group opacity-60">
-					<span class="truncate pl-7 text-[13px]"># dev-logs</span>
-				</button>
 			</div>
 
 			<!-- Cron/Scheduled Tasks Section -->
@@ -228,10 +227,23 @@
 		</div>
 		
 		<!-- Footer -->
-		<div class="p-3 border-t border-border bg-background/30 backdrop-blur-md shrink-0">
-			<button class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-sm border border-transparent hover:border-border transition-all font-medium group">
+		<div class="p-3 border-t border-border bg-background/30 backdrop-blur-md shrink-0 flex items-center gap-2">
+			<button 
+				onclick={() => { isLogsOpen = true; }} 
+				class="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm text-primary/80 hover:text-primary hover:bg-primary/10 rounded-sm border border-transparent transition-all font-medium group"
+				title="Daemon Logs"
+			>
+				<TerminalSquare class="w-4 h-4" />
+				<span class="tracking-wider text-[11px] uppercase">Logs</span>
+			</button>
+			<div class="w-px h-4 bg-border/50"></div>
+			<button 
+				onclick={() => { isSettingsOpen = true; }} 
+				class="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-sm border border-transparent transition-all font-medium group"
+				title="System Config"
+			>
 				<Settings class="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
-				<span class="uppercase tracking-widest text-xs">System Config</span>
+				<span class="tracking-wider text-[11px] uppercase">Config</span>
 			</button>
 		</div>
 	</aside>
@@ -522,3 +534,4 @@
 
 <!-- Render System Logs Modal -->
 <SystemLogs bind:isOpen={isLogsOpen} />
+<SettingsModal bind:isOpen={isSettingsOpen} />

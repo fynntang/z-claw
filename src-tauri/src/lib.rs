@@ -59,6 +59,26 @@ fn config_validate(config: AppConfig) -> ValidationResult {
     bridge::config::validate_config(&config)
 }
 
+#[derive(serde::Serialize)]
+struct UIProviderInfo {
+    name: String,
+    display_name: String,
+    local: bool,
+}
+
+/// Get list of available AI providers from ZeroClaw
+#[tauri::command]
+fn providers_list() -> Vec<UIProviderInfo> {
+    zeroclaw::providers::list_providers()
+        .into_iter()
+        .map(|p| UIProviderInfo {
+            name: p.name.to_string(),
+            display_name: p.display_name.to_string(),
+            local: p.local,
+        })
+        .collect()
+}
+
 /// Get list of available tools
 #[tauri::command]
 fn tools_list() -> Vec<ToolInfo> {
@@ -95,6 +115,7 @@ pub fn run() {
             config_get,
             config_set,
             config_validate,
+            providers_list,
             tools_list,
             logs_tail,
             logs_clear
