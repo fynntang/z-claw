@@ -5,6 +5,7 @@
     import { page } from '$app/state';
     import { locales, localizeHref } from '$lib/paraglide/runtime';
     import { onMount } from 'svelte';
+    import Titlebar from '$lib/components/Titlebar.svelte';
 
     const { children } = $props();
 
@@ -17,7 +18,12 @@
 </svelte:head>
 <ModeWatcher />
 
-{@render children()}
+<div class="flex flex-col h-screen w-full overflow-hidden bg-background">
+    <Titlebar />
+    <div class="flex-1 w-full relative overflow-hidden">
+        {@render children()}
+    </div>
+</div>
 
 <div style="display:none">
     {#each locales as locale (locale)}
