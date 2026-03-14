@@ -5,12 +5,10 @@
     import { page } from '$app/state';
     import { locales, localizeHref } from '$lib/paraglide/runtime';
     import { onMount } from 'svelte';
-    import { loadConfig } from '$lib/stores/app';
 
     const { children } = $props();
 
     onMount(() => {
-        loadConfig();
     });
 </script>
 
