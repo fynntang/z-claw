@@ -1,0 +1,10 @@
+{
+  "style": "base-vega",
+  "tailwind": {
+    "baseColor": "neutral"
+  },
+  "iconLibrary": "lucide",
+  "rtl": false,
+  "menuColor": "inverted-translucent",
+  "menuAccent": "subtle"
+}
