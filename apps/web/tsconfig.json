@@ -1,0 +1,8 @@
+{
+  "extends": "@z-claw/typescript-config/vite.json",
+  "include": ["src"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "strictNullChecks": true
+  }
+}

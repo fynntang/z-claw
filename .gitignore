@@ -1,7 +1,7 @@
 .vscode/*
 !.vscode/extensions.json
 .idea
-
+.turbo
 /target
 node_modules
 dist

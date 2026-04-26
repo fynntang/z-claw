@@ -1,0 +1,14 @@
+{
+  "name": "@z-claw/eslint-config",
+  "version": "0.0.0",
+  "main": "index.js",
+  "license": "MIT OR Apache-2.0",
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "eslint-config-prettier": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

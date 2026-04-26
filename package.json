@@ -1,30 +1,30 @@
 {
   "name": "z-claw",
   "private": true,
+  "license": "MIT OR Apache-2.0",
   "version": "0.1.0",
   "scripts": {
-    "dev": "pnpm --filter z-claw-desktop dev",
-    "build": "pnpm --filter z-claw-desktop build",
-    "preview": "pnpm --filter z-claw-desktop preview",
-    "lint": "pnpm -r --if-present run lint",
-    "typecheck": "pnpm -r --if-present run typecheck",
-    "test": "pnpm -r --if-present run test",
-    "format": "prettier --write \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\"",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "catalog": "pnpx codemod pnpm/catalog",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "openspec": "openspec",
-    "sync-skills": "node scripts/sync_skills.mjs"
+    "tauri:build": "tauri build"
   },
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
-    "@fission-ai/openspec": "^1.2.0",
-    "@tauri-apps/cli": "^2.10.1",
-    "prettier": "^3.8.1",
-    "prettier-plugin-tailwindcss": "^0.7.2",
-    "typescript": "5.9.3"
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "turbo": "catalog:"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "tailwindcss": "catalog:"
   }
 }

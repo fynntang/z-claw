@@ -1,10 +1,10 @@
 [package]
-name = "z-claw"
+name = "z-claw-desktop"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+authors.workspace = true
 description = "z-claw desktop (Tauri + React)"
-authors = ["you"]
 
 [lib]
 name = "z_claw_lib"
