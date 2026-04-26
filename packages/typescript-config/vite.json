@@ -1,5 +1,5 @@
 {
-  "extends": "./base.json",
+  "extends": "@z-claw/typescript-config/base.json",
   "compilerOptions": {
     "target": "ESNext",
     "useDefineForClassFields": true,

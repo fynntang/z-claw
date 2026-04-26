@@ -6467,7 +6467,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "z-claw"
+name = "z-claw-cli"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-channel",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "z-claw-kernel",
+]
+
+[[package]]
+name = "z-claw-desktop"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
@@ -6476,17 +6487,6 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
- "tracing",
- "tracing-subscriber",
- "z-claw-kernel",
-]
-
-[[package]]
-name = "z-claw-cli"
-version = "0.1.0"
-dependencies = [
- "crossbeam-channel",
- "tokio",
  "tracing",
  "tracing-subscriber",
  "z-claw-kernel",
