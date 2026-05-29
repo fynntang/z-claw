@@ -1,0 +1,12 @@
+[package]
+name = "z-claw-cli"
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

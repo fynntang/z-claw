@@ -1,21 +1,27 @@
 [workspace]
 resolver = "2"
 members = [
-    "src-tauri",
+    "apps/z-claw",
+    "apps/z-claw-cli",
     "crates/z-claw-kernel",
-    "crates/z-claw-cli",
 ]
-default-members = ["src-tauri"]
+default-members = [
+    "apps/z-claw",
+    "apps/z-claw-cli"
+]
 
 [workspace.package]
-license = "MIT OR Apache-2.0"
+license = "MIT"
 homepage = "https://z-claw.ai/"
 repository = "https://github.com/z-claw/z-claw.git"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
 
 [workspace.dependencies]
 z-claw-kernel = { path = "crates/z-claw-kernel" }
+
+
+
 
 [profile.release]
 debug = "limited"
