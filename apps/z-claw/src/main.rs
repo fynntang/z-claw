@@ -5,8 +5,9 @@ use gpui::prelude::*;
 use gpui::*;
 use gpui_platform::application;
 use z_claw_assets::Assets;
+use z_claw_ui::views::settings::ProviderSettings;
 use z_claw_ui::views::sidebar::SessionSummary;
-use z_claw_ui::{AppModel, ChatView, Sidebar, ThemeColors};
+use z_claw_ui::{AppModel, ApprovalDialog, ChatView, SettingsPanel, Sidebar, ThemeColors};
 
 fn main() {
     tracing_subscriber::fmt()
@@ -115,6 +116,7 @@ struct MainWindow {
     input_text: SharedString,
     focus_handle: FocusHandle,
     sessions: Vec<SessionSummary>,
+    show_settings: bool,
 }
 
 impl MainWindow {
@@ -148,6 +150,7 @@ impl MainWindow {
             input_text: SharedString::default(),
             focus_handle: cx.focus_handle(),
             sessions: Vec::new(),
+            show_settings: false,
         }
     }
 
@@ -175,6 +178,7 @@ impl Render for MainWindow {
         let theme = *cx.global::<ThemeColors>();
         let messages = model.messages.clone();
         let streaming = model.streaming;
+        let pending_approval = model.pending_approval.clone();
         drop(model);
 
         let sessions = self.sessions.clone();
@@ -196,8 +200,9 @@ impl Render for MainWindow {
 
         let app_model_new = self.app_model.clone();
         let input_element = InputElement { view: cx.entity() };
+        let show_settings = self.show_settings;
 
-        div()
+        let mut root = div()
             .flex()
             .flex_row()
             .size_full()
@@ -218,7 +223,47 @@ impl Render for MainWindow {
                 input_text: self.input_text.clone(),
                 on_send: Some(send_handler),
             })
-            .child(input_element)
+            .child(input_element);
+
+        if let Some(req) = pending_approval {
+            let e1 = cx.entity();
+            let e2 = e1.clone();
+            root = root.child(
+                ApprovalDialog::new(req)
+                    .on_approve(move |_, cx| {
+                        e1.update(cx, |this, cx| {
+                            this.app_model.update(cx, |m, _| m.clear_approval());
+                            cx.notify();
+                        });
+                    })
+                    .on_deny(move |_, cx| {
+                        e2.update(cx, |this, cx| {
+                            this.app_model.update(cx, |m, _| m.clear_approval());
+                            cx.notify();
+                        });
+                    }),
+            );
+        }
+
+        if show_settings {
+            let current = ProviderSettings {
+                provider_type: "ollama".into(),
+                model: "llama3".into(),
+                endpoint: "http://localhost:11434/v1".into(),
+                api_key: "".into(),
+            };
+            root = root.child(SettingsPanel::new(current).on_close({
+                let entity = cx.entity();
+                move |_, cx| {
+                    entity.update(cx, |this: &mut MainWindow, cx| {
+                        this.show_settings = false;
+                        cx.notify();
+                    });
+                }
+            }));
+        }
+
+        root
     }
 }
 

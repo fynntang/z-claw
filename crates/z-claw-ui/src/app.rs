@@ -1,3 +1,4 @@
+use crate::views::approval::ApprovalRequest;
 use gpui::*;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -5,7 +6,7 @@ use z_claw_agent::{AgentLoop, Harness, default_system_prompt};
 use z_claw_core::AgentEvent;
 use z_claw_core::{NativePlatform, Platform};
 use z_claw_memory::{MemoryBackend, SqliteMemory};
-use z_claw_providers::{OpenAiProvider, ProviderChain};
+use z_claw_providers::{AnthropicProvider, LlmProvider, OpenAiProvider, ProviderChain};
 use z_claw_security::{PolicyEngine, SecurityLevel};
 use z_claw_tools::builtin_tools;
 
@@ -18,6 +19,7 @@ pub struct AppModel {
     pub input_text: String,
     pub streaming: bool,
     pub session_id: String,
+    pub pending_approval: Option<ApprovalRequest>,
 }
 
 #[derive(Debug, Clone)]
@@ -47,13 +49,28 @@ impl AppModel {
                 .expect("failed to create SQLite memory backend"),
         );
 
-        let provider = Arc::new(OpenAiProvider::new(
+        // Primary: Ollama (local, always available)
+        let ollama = Arc::new(OpenAiProvider::new(
             "ollama".into(),
             "http://localhost:11434/v1".into(),
             "ollama".into(),
             "llama3".into(),
         ));
-        let chain = ProviderChain::from_single(provider);
+
+        // Build provider chain with fallback
+        let mut providers: Vec<Arc<dyn LlmProvider>> = vec![ollama];
+
+        // Fallback: Anthropic if API key is set
+        if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
+            if !key.is_empty() {
+                providers.push(Arc::new(AnthropicProvider::new(
+                    "anthropic".into(),
+                    key,
+                    "claude-sonnet-4-6".into(),
+                )));
+            }
+        }
+        let chain = ProviderChain::new(providers);
 
         let harness = Arc::new(Harness {
             providers: chain,
@@ -75,7 +92,13 @@ impl AppModel {
             input_text: String::new(),
             streaming: false,
             session_id,
+            pending_approval: None,
         }
+    }
+
+    /// Clear the pending tool approval (called after user decides).
+    pub fn clear_approval(&mut self) {
+        self.pending_approval = None;
     }
 
     /// Start a fresh session with a new agent loop.
@@ -195,6 +218,21 @@ impl AppModel {
                         }
                     }
                     let _ = call_id;
+                    cx.notify();
+                }
+                AgentEvent::ApprovalRequired {
+                    call_id,
+                    tool_name,
+                    arguments_json,
+                    security_level,
+                    ..
+                } => {
+                    self.pending_approval = Some(ApprovalRequest {
+                        call_id,
+                        tool_name,
+                        arguments: arguments_json,
+                        security_level,
+                    });
                     cx.notify();
                 }
                 AgentEvent::StreamingDone { .. } => {

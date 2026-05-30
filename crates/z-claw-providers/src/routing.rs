@@ -11,7 +11,9 @@ impl ProviderChain {
     }
 
     pub fn from_single(provider: Arc<dyn LlmProvider>) -> Self {
-        Self { providers: vec![provider] }
+        Self {
+            providers: vec![provider],
+        }
     }
 
     pub async fn chat(
@@ -33,5 +35,7 @@ impl ProviderChain {
         Err(last_error.unwrap_or(z_claw_core::ClawError::AllProvidersFailed))
     }
 
-    pub fn is_empty(&self) -> bool { self.providers.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.providers.is_empty()
+    }
 }

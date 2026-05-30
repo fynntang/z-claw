@@ -15,7 +15,13 @@ impl OpenAiProvider {
         let client = Client::builder()
             .build()
             .expect("Failed to build reqwest client");
-        Self { id, base_url, api_key, default_model, client }
+        Self {
+            id,
+            base_url,
+            api_key,
+            default_model,
+            client,
+        }
     }
 
     fn endpoint(&self) -> String {
@@ -40,14 +46,19 @@ impl LlmProvider for OpenAiProvider {
         let tool_specs: Vec<serde_json::Value> = if tools.is_empty() {
             vec![]
         } else {
-            tools.iter().map(|t| serde_json::json!({
-                "type": "function",
-                "function": {
-                    "name": t.name,
-                    "description": t.description,
-                    "parameters": t.parameters,
-                }
-            })).collect()
+            tools
+                .iter()
+                .map(|t| {
+                    serde_json::json!({
+                        "type": "function",
+                        "function": {
+                            "name": t.name,
+                            "description": t.description,
+                            "parameters": t.parameters,
+                        }
+                    })
+                })
+                .collect()
         };
 
         let body = serde_json::json!({
@@ -71,7 +82,8 @@ impl LlmProvider for OpenAiProvider {
             "max_tokens": config.max_tokens,
         });
 
-        let resp = self.client
+        let resp = self
+            .client
             .post(&self.endpoint())
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&body)
@@ -122,14 +134,18 @@ fn parse_sse_chunk(text: &str) -> Result<StreamChunk, z_claw_core::ClawError> {
         }
         let json_str = &line["data: ".len()..];
         if json_str == "[DONE]" {
-            return Ok(StreamChunk::Done { finish_reason: Some("stop".into()) });
+            return Ok(StreamChunk::Done {
+                finish_reason: Some("stop".into()),
+            });
         }
         let parsed: serde_json::Value = serde_json::from_str(json_str)?;
         if let Some(choices) = parsed["choices"].as_array() {
             for choice in choices {
                 if let Some(reason) = choice["finish_reason"].as_str() {
                     if !reason.is_empty() && reason != "null" {
-                        return Ok(StreamChunk::Done { finish_reason: Some(reason.into()) });
+                        return Ok(StreamChunk::Done {
+                            finish_reason: Some(reason.into()),
+                        });
                     }
                 }
                 let delta = &choice["delta"];
@@ -144,13 +160,16 @@ fn parse_sse_chunk(text: &str) -> Result<StreamChunk, z_claw_core::ClawError> {
                         if let Some(id) = tc["id"].as_str() {
                             let name = tc["function"]["name"].as_str().unwrap_or("");
                             return Ok(StreamChunk::ToolCallStart {
-                                index, id: id.to_string(), name: name.to_string(),
+                                index,
+                                id: id.to_string(),
+                                name: name.to_string(),
                             });
                         }
                         if let Some(args) = tc["function"]["arguments"].as_str() {
                             if !args.is_empty() {
                                 return Ok(StreamChunk::ToolCallDelta {
-                                    index, args_delta: args.to_string(),
+                                    index,
+                                    args_delta: args.to_string(),
                                 });
                             }
                         }

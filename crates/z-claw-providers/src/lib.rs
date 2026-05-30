@@ -1,15 +1,18 @@
+mod anthropic;
 mod openai;
 mod routing;
 
+pub use anthropic::AnthropicProvider;
 pub use openai::OpenAiProvider;
 pub use routing::ProviderChain;
 
 use async_trait::async_trait;
 use futures::Stream;
 use std::pin::Pin;
-use z_claw_core::{ChatMessage, GenerateConfig, ModelInfo, StreamChunk, ToolDef, Feature};
+use z_claw_core::{ChatMessage, Feature, GenerateConfig, ModelInfo, StreamChunk, ToolDef};
 
-pub type ChunkStream = Pin<Box<dyn Stream<Item = Result<StreamChunk, z_claw_core::ClawError>> + Send>>;
+pub type ChunkStream =
+    Pin<Box<dyn Stream<Item = Result<StreamChunk, z_claw_core::ClawError>> + Send>>;
 
 #[async_trait]
 pub trait LlmProvider: Send + Sync {
