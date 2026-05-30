@@ -2,12 +2,32 @@ use std::process::Command;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HookEvent {
+    // Tool lifecycle
     PreToolUse,
     PostToolUse,
     PostToolUseFailure,
+    // Agent lifecycle
     AgentStart,
     AgentStop,
+    // Session
+    SessionStart,
+    SessionEnd,
+    // User interaction
     UserPromptSubmit,
+    MessageReceived,
+    MessageSent,
+    // Thinking
+    ThinkingStart,
+    ThinkingEnd,
+    // Compaction
+    PreCompact,
+    PostCompact,
+    // Permission
+    PermissionRequest,
+    PermissionGranted,
+    PermissionDenied,
+    // Notification
+    Notification,
 }
 
 impl HookEvent {
@@ -18,7 +38,19 @@ impl HookEvent {
             "PostToolUseFailure" | "post_tool_use_failure" => Some(Self::PostToolUseFailure),
             "AgentStart" | "agent_start" => Some(Self::AgentStart),
             "AgentStop" | "agent_stop" => Some(Self::AgentStop),
+            "SessionStart" | "session_start" => Some(Self::SessionStart),
+            "SessionEnd" | "session_end" => Some(Self::SessionEnd),
             "UserPromptSubmit" | "user_prompt_submit" => Some(Self::UserPromptSubmit),
+            "MessageReceived" | "message_received" => Some(Self::MessageReceived),
+            "MessageSent" | "message_sent" => Some(Self::MessageSent),
+            "ThinkingStart" | "thinking_start" => Some(Self::ThinkingStart),
+            "ThinkingEnd" | "thinking_end" => Some(Self::ThinkingEnd),
+            "PreCompact" | "pre_compact" => Some(Self::PreCompact),
+            "PostCompact" | "post_compact" => Some(Self::PostCompact),
+            "PermissionRequest" | "permission_request" => Some(Self::PermissionRequest),
+            "PermissionGranted" | "permission_granted" => Some(Self::PermissionGranted),
+            "PermissionDenied" | "permission_denied" => Some(Self::PermissionDenied),
+            "Notification" | "notification" => Some(Self::Notification),
             _ => None,
         }
     }
