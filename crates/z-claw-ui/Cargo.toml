@@ -10,6 +10,7 @@ z-claw-agent.workspace = true
 z-claw-memory.workspace = true
 z-claw-providers.workspace = true
 z-claw-security.workspace = true
+z-claw-skills.workspace = true
 z-claw-tools.workspace = true
 gpui.workspace = true
 gpui_macros.workspace = true

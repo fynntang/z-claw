@@ -8,6 +8,7 @@ use z_claw_core::{NativePlatform, Platform};
 use z_claw_memory::{MemoryBackend, SqliteMemory};
 use z_claw_providers::{AnthropicProvider, LlmProvider, OpenAiProvider, ProviderChain};
 use z_claw_security::{PolicyEngine, SecurityLevel};
+use z_claw_skills::SkillRegistry;
 use z_claw_tools::builtin_tools;
 
 pub struct AppModel {
@@ -79,6 +80,7 @@ impl AppModel {
             policy: PolicyEngine::new(vec![], vec!["~".into()], SecurityLevel::ConfirmExecute),
             system_prompt: default_system_prompt(),
             hooks: HookRegistry::new(),
+            skills: Arc::new(SkillRegistry::new()),
         });
 
         let session_id = uuid::Uuid::new_v4().to_string();
@@ -121,6 +123,7 @@ impl AppModel {
             policy: PolicyEngine::new(vec![], vec!["~".into()], SecurityLevel::ConfirmExecute),
             system_prompt: default_system_prompt(),
             hooks: HookRegistry::new(),
+            skills: Arc::new(SkillRegistry::new()),
         });
         self.agent = Some(AgentLoop::new(harness, session_id));
     }

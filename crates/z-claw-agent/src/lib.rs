@@ -8,6 +8,7 @@ use z_claw_core::{AgentEvent, ChatMessage, GenerateConfig, StreamChunk, ToolCall
 use z_claw_memory::MemoryBackend;
 use z_claw_providers::ProviderChain;
 use z_claw_security::PolicyEngine;
+use z_claw_skills::SkillRegistry;
 use z_claw_tools::ToolRegistry;
 
 const MAX_ROUNDS: usize = 10;
@@ -20,6 +21,7 @@ pub struct Harness {
     pub policy: PolicyEngine,
     pub system_prompt: String,
     pub hooks: HookRegistry,
+    pub skills: Arc<SkillRegistry>,
 }
 
 /// The agent loop — runs turns with streaming and tool calling.
@@ -28,6 +30,7 @@ pub struct AgentLoop {
     session_id: String,
     history: Vec<ChatMessage>,
     session_created: bool,
+    plan_mode: bool,
 }
 
 impl AgentLoop {
@@ -37,7 +40,22 @@ impl AgentLoop {
             session_id,
             history: Vec::new(),
             session_created: false,
+            plan_mode: false,
         }
+    }
+
+    /// Enter plan mode — restricts to read-only tools.
+    pub fn enter_plan_mode(&mut self) {
+        self.plan_mode = true;
+    }
+
+    /// Exit plan mode — restore full tool access.
+    pub fn exit_plan_mode(&mut self) {
+        self.plan_mode = false;
+    }
+
+    pub fn is_plan_mode(&self) -> bool {
+        self.plan_mode
     }
 
     /// Run one user turn, emitting events for the UI.
@@ -76,10 +94,24 @@ impl AgentLoop {
 
         // Inner loop: model turns with tool calling
         for _round in 0..MAX_ROUNDS {
-            // Build messages: system prompt + history
+            // Build system prompt with skills and plan mode context
+            let mut system = self.harness.system_prompt.clone();
+
+            // Inject active skills
+            let skills_prompt = self.harness.skills.active_skills_prompt(None);
+            if !skills_prompt.is_empty() {
+                system.push_str("\n\n");
+                system.push_str(&skills_prompt);
+            }
+
+            // Plan mode context
+            if self.plan_mode {
+                system.push_str("\n\nYou are in PLAN MODE. Only use read-only tools (read_file, list_directory, search_memory). Do NOT modify files or execute commands. Propose a plan first, then wait for user approval.");
+            }
+
             let mut messages = vec![ChatMessage {
                 role: "system".into(),
-                content: self.harness.system_prompt.clone(),
+                content: system,
                 tool_calls: None,
                 tool_call_id: None,
                 name: None,

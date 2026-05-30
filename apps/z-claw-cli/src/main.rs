@@ -8,6 +8,7 @@ use z_claw_core::{AgentEvent, NativePlatform};
 use z_claw_memory::NoopMemory;
 use z_claw_providers::{OpenAiProvider, ProviderChain};
 use z_claw_security::{PolicyEngine, SecurityLevel};
+use z_claw_skills::SkillRegistry;
 use z_claw_tools::builtin_tools;
 
 #[tokio::main]
@@ -70,6 +71,7 @@ async fn build_agent() -> AgentLoop {
         ),
         system_prompt: default_system_prompt(),
         hooks: HookRegistry::new(),
+        skills: Arc::new(SkillRegistry::new()),
     });
 
     let session_id = uuid::Uuid::new_v4().to_string();
