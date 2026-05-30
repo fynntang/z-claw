@@ -1,0 +1,13 @@
+[package]
+name = "z-claw-config"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+z-claw-core.workspace = true
+serde.workspace = true
+toml.workspace = true
+dirs.workspace = true
+notify.workspace = true
+tracing.workspace = true

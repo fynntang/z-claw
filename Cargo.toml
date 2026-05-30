@@ -1,16 +1,108 @@
 [workspace]
 resolver = "2"
 members = [
+    "apps/z-claw",
+    "apps/z-claw-cli",
+    "crates/z-claw-core",
+    "crates/z-claw-config",
+    "crates/z-claw-security",
+    "crates/z-claw-providers",
+    "crates/z-claw-tools",
+    "crates/z-claw-memory",
+    "crates/z-claw-skills",
+    "crates/z-claw-agent",
+    "crates/z-claw-ui",
+    "crates/z-claw-assets",
+    "crates/z-claw-icons",
+    "crates/z-claw-i18n",
 ]
-default-members = [
-]
+default-members = ["apps/z-claw"]
 
 [workspace.package]
 license = "MIT"
 homepage = "https://z-claw.ai/"
 repository = "https://github.com/z-claw/z-claw.git"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2024"
 
-[workspace.dependencies]
+[workspace.lints.rust]
+unsafe_code = "forbid"
 
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[workspace.dependencies]
+# Internal
+z-claw-core = { path = "crates/z-claw-core" }
+z-claw-config = { path = "crates/z-claw-config" }
+z-claw-security = { path = "crates/z-claw-security" }
+z-claw-providers = { path = "crates/z-claw-providers" }
+z-claw-tools = { path = "crates/z-claw-tools" }
+z-claw-memory = { path = "crates/z-claw-memory" }
+z-claw-skills = { path = "crates/z-claw-skills" }
+z-claw-agent = { path = "crates/z-claw-agent" }
+z-claw-ui = { path = "crates/z-claw-ui" }
+z-claw-assets = { path = "crates/z-claw-assets" }
+z-claw-icons = { path = "crates/z-claw-icons" }
+z-claw-i18n = { path = "crates/z-claw-i18n" }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.8"
+
+# Async traits
+async-trait = "0.1"
+futures = "0.3"
+
+# Error handling
+thiserror = "2"
+
+# HTTP client
+reqwest = { version = "0.12", default-features = false, features = [
+    "rustls-tls",
+    "stream",
+    "json",
+] }
+
+# Database
+rusqlite = { version = "0.32", features = ["bundled", "vtab"] }
+
+# MCP client
+rmcp = { version = "0.4", features = ["client", "transport-child-process"] }
+
+# Time & scheduling
+chrono = "0.4"
+cron = "0.14"
+
+# Identifiers
+uuid = { version = "1", features = ["v4"] }
+
+# File paths
+dirs = "6"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Hot-reload config
+notify = "7"
+
+# Syntax highlighting
+syntect = "5"
+
+# GPUI — pinned to Zed v1.4.4 tag
+gpui = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
+gpui_macros = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
+gpui_platform = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
+ui = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
+ui_input = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
+
+# Asset bundling
+anyhow = "1"
+rust-embed = "8"
+strum = { version = "0.26", features = ["derive"] }

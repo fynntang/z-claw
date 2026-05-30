@@ -1,0 +1,11 @@
+[package]
+name = "z-claw-i18n"
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"

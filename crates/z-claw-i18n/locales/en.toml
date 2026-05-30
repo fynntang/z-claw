@@ -1,0 +1,12 @@
+[entries]
+"app.title" = "z-claw"
+"chat.placeholder" = "Type a message..."
+"chat.send" = "Send"
+"chat.assistant" = "Assistant"
+"chat.you" = "You"
+"sidebar.title" = "Sessions"
+"sidebar.new" = "New Session"
+"tool.running" = "Running"
+"tool.ok" = "Done"
+"tool.error" = "Error"
+"error.generic" = "An error occurred"

@@ -1,0 +1,23 @@
+[package]
+name = "z-claw"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+z-claw-core.workspace = true
+z-claw-config.workspace = true
+z-claw-agent.workspace = true
+z-claw-memory.workspace = true
+z-claw-providers.workspace = true
+z-claw-tools.workspace = true
+z-claw-ui.workspace = true
+z-claw-assets.workspace = true
+gpui.workspace = true
+gpui_macros.workspace = true
+gpui_platform.workspace = true
+ui.workspace = true
+ui_input.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

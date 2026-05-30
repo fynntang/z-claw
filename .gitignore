@@ -9,3 +9,6 @@ research/
 /docs
 *.log
 *.tmp
+/.ref
+
+.claude/settings.local.json

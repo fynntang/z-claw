@@ -1,0 +1,12 @@
+[entries]
+"app.title" = "z-claw"
+"chat.placeholder" = "输入消息..."
+"chat.send" = "发送"
+"chat.assistant" = "助手"
+"chat.you" = "你"
+"sidebar.title" = "会话"
+"sidebar.new" = "新建会话"
+"tool.running" = "运行中"
+"tool.ok" = "完成"
+"tool.error" = "错误"
+"error.generic" = "发生错误"
