@@ -5,8 +5,12 @@ pub struct ExecuteCommandTool;
 
 #[async_trait]
 impl Tool for ExecuteCommandTool {
-    fn name(&self) -> &str { "execute_command" }
-    fn description(&self) -> &str { "Execute a shell command and return its output (timeout: 60s, max output: 64KB)" }
+    fn name(&self) -> &str {
+        "execute_command"
+    }
+    fn description(&self) -> &str {
+        "Execute a shell command and return its output (timeout: 60s, max output: 64KB)"
+    }
     fn parameters(&self) -> serde_json::Value {
         serde_json::json!({
             "type": "object",
@@ -18,9 +22,12 @@ impl Tool for ExecuteCommandTool {
         })
     }
     async fn execute(&self, args: serde_json::Value) -> Result<String, z_claw_core::ClawError> {
-        let command = args["command"].as_str().ok_or_else(|| {
-            z_claw_core::ClawError::Tool { tool: "execute_command".into(), message: "missing command".into() }
-        })?;
+        let command = args["command"]
+            .as_str()
+            .ok_or_else(|| z_claw_core::ClawError::Tool {
+                tool: "execute_command".into(),
+                message: "missing command".into(),
+            })?;
         let cwd = args["cwd"].as_str().unwrap_or(".");
 
         let output = if cfg!(target_os = "windows") {
@@ -43,12 +50,17 @@ impl Tool for ExecuteCommandTool {
             result.push_str(&stdout);
         }
         if !stderr.is_empty() {
-            if !result.is_empty() { result.push('\n'); }
+            if !result.is_empty() {
+                result.push('\n');
+            }
             result.push_str("stderr:\n");
             result.push_str(&stderr);
         }
         if result.is_empty() {
-            result = format!("Command completed with exit code: {}", output.status.code().unwrap_or(-1));
+            result = format!(
+                "Command completed with exit code: {}",
+                output.status.code().unwrap_or(-1)
+            );
         }
         Ok(result)
     }

@@ -2,7 +2,7 @@ use crate::views::approval::ApprovalRequest;
 use gpui::*;
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use z_claw_agent::{AgentLoop, Harness, default_system_prompt};
+use z_claw_agent::{AgentLoop, Harness, HookRegistry, default_system_prompt};
 use z_claw_core::AgentEvent;
 use z_claw_core::{NativePlatform, Platform};
 use z_claw_memory::{MemoryBackend, SqliteMemory};
@@ -78,6 +78,7 @@ impl AppModel {
             memory: memory.clone(),
             policy: PolicyEngine::new(vec![], vec!["~".into()], SecurityLevel::ConfirmExecute),
             system_prompt: default_system_prompt(),
+            hooks: HookRegistry::new(),
         });
 
         let session_id = uuid::Uuid::new_v4().to_string();
@@ -119,6 +120,7 @@ impl AppModel {
             memory: self.memory.clone(),
             policy: PolicyEngine::new(vec![], vec!["~".into()], SecurityLevel::ConfirmExecute),
             system_prompt: default_system_prompt(),
+            hooks: HookRegistry::new(),
         });
         self.agent = Some(AgentLoop::new(harness, session_id));
     }

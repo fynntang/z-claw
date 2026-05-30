@@ -1,3 +1,7 @@
+mod hooks;
+
+pub use hooks::{Hook, HookEvent, HookRegistry};
+
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use z_claw_core::{AgentEvent, ChatMessage, GenerateConfig, StreamChunk, ToolCall};
@@ -15,6 +19,7 @@ pub struct Harness {
     pub memory: Arc<dyn MemoryBackend>,
     pub policy: PolicyEngine,
     pub system_prompt: String,
+    pub hooks: HookRegistry,
 }
 
 /// The agent loop — runs turns with streaming and tool calling.
@@ -250,10 +255,20 @@ impl AgentLoop {
                     continue;
                 }
 
+                // Run PreToolUse hooks
+                self.harness
+                    .hooks
+                    .run_hooks(&HookEvent::PreToolUse, Some(&tc.name));
+
                 // Execute the tool
                 match self.harness.tools.get(&tc.name) {
                     Some(tool) => match tool.execute(tc.arguments.clone()).await {
                         Ok(result) => {
+                            // Run PostToolUse hooks
+                            self.harness
+                                .hooks
+                                .run_hooks(&HookEvent::PostToolUse, Some(&tc.name));
+
                             let _ = event_tx.send(AgentEvent::ToolCallFinished {
                                 session_id: self.session_id.clone(),
                                 call_id: tc.id.clone(),

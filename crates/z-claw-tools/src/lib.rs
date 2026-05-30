@@ -1,7 +1,9 @@
 mod filesystem;
+mod http;
 mod shell;
 
-pub use filesystem::{ReadFileTool, WriteFileTool, ListDirectoryTool};
+pub use filesystem::{ListDirectoryTool, ReadFileTool, WriteFileTool};
+pub use http::HttpRequestTool;
 pub use shell::ExecuteCommandTool;
 
 use async_trait::async_trait;
@@ -36,11 +38,14 @@ impl ToolRegistry {
     }
 
     pub fn definitions(&self) -> Vec<ToolDef> {
-        self.tools.iter().map(|t| ToolDef {
-            name: t.name().to_string(),
-            description: t.description().to_string(),
-            parameters: t.parameters(),
-        }).collect()
+        self.tools
+            .iter()
+            .map(|t| ToolDef {
+                name: t.name().to_string(),
+                description: t.description().to_string(),
+                parameters: t.parameters(),
+            })
+            .collect()
     }
 
     pub fn names(&self) -> Vec<String> {
@@ -54,6 +59,7 @@ pub fn builtin_tools() -> ToolRegistry {
     registry.register(Arc::new(filesystem::ReadFileTool));
     registry.register(Arc::new(filesystem::WriteFileTool));
     registry.register(Arc::new(filesystem::ListDirectoryTool));
+    registry.register(Arc::new(http::HttpRequestTool));
     registry.register(Arc::new(shell::ExecuteCommandTool));
     registry
 }

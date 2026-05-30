@@ -2,9 +2,9 @@ use std::io::{self, Write};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use z_claw_agent::{AgentLoop, Harness, default_system_prompt};
-use z_claw_core::{AgentEvent, NativePlatform};
+use z_claw_agent::{AgentLoop, Harness, HookRegistry, default_system_prompt};
 use z_claw_config::load_config;
+use z_claw_core::{AgentEvent, NativePlatform};
 use z_claw_memory::NoopMemory;
 use z_claw_providers::{OpenAiProvider, ProviderChain};
 use z_claw_security::{PolicyEngine, SecurityLevel};
@@ -34,19 +34,28 @@ async fn build_agent() -> AgentLoop {
     let platform = NativePlatform;
     let config = load_config(&platform);
 
-    let base_url = config.providers.first()
+    let base_url = config
+        .providers
+        .first()
         .map(|p| p.base_url.clone())
         .unwrap_or_else(|| "http://localhost:11434/v1".to_string());
-    let api_key = config.providers.first()
+    let api_key = config
+        .providers
+        .first()
         .and_then(|p| z_claw_config::resolve_api_key(p))
         .unwrap_or_else(|| "ollama".to_string());
-    let model = config.providers.first()
+    let model = config
+        .providers
+        .first()
         .and_then(|p| p.default_model.clone())
         .or(Some(config.default_model.clone()))
         .unwrap_or_else(|| "llama3".to_string());
 
     let provider = Arc::new(OpenAiProvider::new(
-        "ollama".into(), base_url, api_key, model,
+        "ollama".into(),
+        base_url,
+        api_key,
+        model,
     ));
 
     let chain = ProviderChain::from_single(provider);
@@ -60,6 +69,7 @@ async fn build_agent() -> AgentLoop {
             SecurityLevel::ConfirmExecute,
         ),
         system_prompt: default_system_prompt(),
+        hooks: HookRegistry::new(),
     });
 
     let session_id = uuid::Uuid::new_v4().to_string();
@@ -83,7 +93,12 @@ async fn run_oneshot(prompt: &str) {
             AgentEvent::ToolCallStarted { tool_name, .. } => {
                 eprintln!("\n[{tool_name}] running...");
             }
-            AgentEvent::ToolCallFinished { tool_name, ok, summary, .. } => {
+            AgentEvent::ToolCallFinished {
+                tool_name,
+                ok,
+                summary,
+                ..
+            } => {
                 let status = if ok { "ok" } else { "error" };
                 eprintln!("[{tool_name}] {status}: {summary}");
             }
@@ -160,7 +175,12 @@ async fn run_repl() {
                 AgentEvent::ToolCallStarted { tool_name, .. } => {
                     println!("\n: [{tool_name}]");
                 }
-                AgentEvent::ToolCallFinished { tool_name, ok, summary, .. } => {
+                AgentEvent::ToolCallFinished {
+                    tool_name,
+                    ok,
+                    summary,
+                    ..
+                } => {
                     let status = if ok { "ok" } else { "ERR" };
                     println!("[{tool_name}] {status}: {summary}");
                 }
