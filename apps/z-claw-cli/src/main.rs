@@ -83,7 +83,7 @@ async fn run_oneshot(prompt: &str) {
     let (event_tx, mut event_rx) = mpsc::unbounded_channel::<AgentEvent>();
 
     let prompt = prompt.to_string();
-    let handle = tokio::spawn(async move { agent.run_turn(&prompt, &event_tx).await });
+    let handle = tokio::spawn(async move { agent.run_turn(&prompt, &event_tx, None).await });
 
     let mut stdout = io::stdout();
     while let Some(event) = event_rx.recv().await {
@@ -166,7 +166,7 @@ async fn run_repl() {
         let (event_tx, mut event_rx) = mpsc::unbounded_channel::<AgentEvent>();
         let prompt = input.clone();
 
-        let handle = tokio::spawn(async move { agent.run_turn(&prompt, &event_tx).await });
+        let handle = tokio::spawn(async move { agent.run_turn(&prompt, &event_tx, None).await });
 
         while let Some(event) = event_rx.recv().await {
             match event {

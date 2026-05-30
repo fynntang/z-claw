@@ -60,11 +60,89 @@ impl AgentLoop {
         self.plan_mode
     }
 
+    /// Compress old messages in history using LLM summarization.
+    /// Keeps the most recent `keep_recent` messages, summarizes older ones.
+    pub async fn compress_history(
+        &mut self,
+        threshold: usize,
+        keep_recent: usize,
+    ) -> Result<(), z_claw_core::ClawError> {
+        if self.history.len() <= threshold {
+            return Ok(());
+        }
+
+        let split_at = self.history.len().saturating_sub(keep_recent);
+        let old: Vec<_> = self.history.drain(..split_at).collect();
+
+        // Build a summary prompt
+        let conversation_text: String = old
+            .iter()
+            .map(|m| format!("{}: {}", m.role, m.content))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let summary_prompt = format!(
+            "Summarize this conversation in 2-3 sentences, capturing key topics and decisions:\n\n{conversation_text}\n\nSummary:"
+        );
+
+        // Call LLM for summary
+        let summary_messages = vec![ChatMessage {
+            role: "user".into(),
+            content: summary_prompt,
+            tool_calls: None,
+            tool_call_id: None,
+            name: None,
+        }];
+
+        let config = GenerateConfig {
+            model: String::new(),
+            temperature: None,
+            max_tokens: Some(256),
+            stream: false,
+        };
+
+        let summary = self
+            .harness
+            .providers
+            .chat(summary_messages, vec![], &config)
+            .await?;
+
+        use futures::StreamExt;
+        let mut text = String::new();
+        let mut stream = summary;
+        while let Some(chunk) = stream.next().await {
+            match chunk? {
+                StreamChunk::TextDelta(d) => text.push_str(&d),
+                StreamChunk::Done { .. } => break,
+                _ => {}
+            }
+        }
+
+        // Insert summary at the beginning, followed by recent messages
+        let summary_msg = ChatMessage {
+            role: "system".into(),
+            content: format!("[Previous conversation summary]: {text}"),
+            tool_calls: None,
+            tool_call_id: None,
+            name: None,
+        };
+
+        let mut new_history = vec![summary_msg];
+        new_history.append(&mut self.history);
+        self.history = new_history;
+
+        tracing::info!("Compressed {} messages into summary", old.len());
+        Ok(())
+    }
+
     /// Run one user turn, emitting events for the UI.
     pub async fn run_turn(
         &mut self,
         user_input: &str,
         event_tx: &mpsc::UnboundedSender<AgentEvent>,
+        approval_channel: Option<
+            Arc<tokio::sync::Mutex<Option<tokio::sync::oneshot::Sender<bool>>>>,
+        >,
     ) -> Result<String, z_claw_core::ClawError> {
         // Ensure session exists in persistent storage
         if !self.session_created {
@@ -257,6 +335,13 @@ impl AgentLoop {
                 }
 
                 if self.harness.policy.needs_approval(level) {
+                    let (tx, rx) = tokio::sync::oneshot::channel();
+
+                    // Store tx in shared channel for UI to access
+                    if let Some(ref ch) = approval_channel {
+                        *ch.lock().await = Some(tx);
+                    }
+
                     let _ = event_tx.send(AgentEvent::ApprovalRequired {
                         session_id: self.session_id.clone(),
                         call_id: tc.id.clone(),
@@ -264,29 +349,36 @@ impl AgentLoop {
                         arguments_json: serde_json::to_string(&tc.arguments).unwrap_or_default(),
                         security_level: level.to_string(),
                     });
-                    // In MVP without UI approval hooks, auto-deny for RequireApproval+ level
-                    // Phase 2 will add proper async approval
-                    let _ = event_tx.send(AgentEvent::ToolCallFinished {
-                        session_id: self.session_id.clone(),
-                        call_id: tc.id.clone(),
-                        tool_name: tc.name.clone(),
-                        ok: false,
-                        summary: "Approval required — auto-denied in MVP".into(),
-                    });
-                    let denied_content = "Approval required — auto-denied in MVP";
-                    self.history.push(ChatMessage {
-                        role: "tool".into(),
-                        content: denied_content.into(),
-                        tool_calls: None,
-                        tool_call_id: Some(tc.id.clone()),
-                        name: Some(tc.name.clone()),
-                    });
-                    self.harness
-                        .memory
-                        .append_message(&self.session_id, "tool", denied_content, None)
+
+                    // Wait for UI approval response (60s timeout → auto-deny)
+                    let approved = tokio::time::timeout(std::time::Duration::from_secs(60), rx)
                         .await
-                        .ok();
-                    continue;
+                        .unwrap_or(Ok(false))
+                        .unwrap_or(false);
+
+                    if !approved {
+                        let denied = "Denied by user";
+                        let _ = event_tx.send(AgentEvent::ToolCallFinished {
+                            session_id: self.session_id.clone(),
+                            call_id: tc.id.clone(),
+                            tool_name: tc.name.clone(),
+                            ok: false,
+                            summary: denied.into(),
+                        });
+                        self.history.push(ChatMessage {
+                            role: "tool".into(),
+                            content: denied.into(),
+                            tool_calls: None,
+                            tool_call_id: Some(tc.id.clone()),
+                            name: Some(tc.name.clone()),
+                        });
+                        self.harness
+                            .memory
+                            .append_message(&self.session_id, "tool", denied, None)
+                            .await
+                            .ok();
+                        continue;
+                    }
                 }
 
                 // Run PreToolUse hooks

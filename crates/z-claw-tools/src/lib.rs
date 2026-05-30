@@ -1,10 +1,12 @@
 mod filesystem;
 mod http;
+mod mcp;
 mod memory_tools;
 mod shell;
 
 pub use filesystem::{ListDirectoryTool, ReadFileTool, WriteFileTool};
 pub use http::HttpRequestTool;
+pub use mcp::{McpTool, discover_mcp_tools};
 pub use memory_tools::{ForgetKnowledgeTool, SearchMemoryTool, StoreKnowledgeTool};
 pub use shell::ExecuteCommandTool;
 

@@ -1,7 +1,7 @@
 use crate::views::approval::ApprovalRequest;
 use gpui::*;
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use tokio::sync::{Mutex, mpsc};
 use z_claw_agent::{AgentLoop, Harness, HookRegistry, default_system_prompt};
 use z_claw_core::AgentEvent;
 use z_claw_core::{NativePlatform, Platform};
@@ -21,6 +21,7 @@ pub struct AppModel {
     pub streaming: bool,
     pub session_id: String,
     pub pending_approval: Option<ApprovalRequest>,
+    pub approval_tx: Arc<Mutex<Option<tokio::sync::oneshot::Sender<bool>>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,6 +97,21 @@ impl AppModel {
             streaming: false,
             session_id,
             pending_approval: None,
+            approval_tx: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// Approve the pending tool (called from UI).
+    pub fn approve(&self) {
+        if let Some(tx) = self.approval_tx.try_lock().ok().and_then(|mut g| g.take()) {
+            let _ = tx.send(true);
+        }
+    }
+
+    /// Deny the pending tool (called from UI).
+    pub fn deny(&self) {
+        if let Some(tx) = self.approval_tx.try_lock().ok().and_then(|mut g| g.take()) {
+            let _ = tx.send(false);
         }
     }
 
@@ -157,9 +173,10 @@ impl AppModel {
 
         let mut agent = self.agent.take().expect("agent missing");
         let event_tx = self.event_tx.clone();
+        let approval_ch = self.approval_tx.clone();
 
         cx.spawn(async move |this: WeakEntity<AppModel>, cx: &mut AsyncApp| {
-            let _ = agent.run_turn(&content, &event_tx).await;
+            let _ = agent.run_turn(&content, &event_tx, Some(approval_ch)).await;
 
             this.update(cx, |this, cx| {
                 this.agent = Some(agent);
