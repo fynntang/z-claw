@@ -1,9 +1,11 @@
 mod hooks;
 mod scheduler;
+mod subagent;
 mod task;
 
 pub use hooks::{Hook, HookEvent, HookRegistry};
 pub use scheduler::{CronScheduler, CronTask};
+pub use subagent::spawn_sub_agent;
 pub use task::{Task, TaskRegistry, TaskStatus};
 
 use std::sync::Arc;
