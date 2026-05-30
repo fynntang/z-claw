@@ -56,6 +56,14 @@ impl SqliteMemory {
         let conn = Connection::open(&path).map_err(|e| ClawError::Sqlite(e.to_string()))?;
         conn.execute_batch(SCHEMA_SQL)
             .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+        // Migrate older schema — ignore errors if columns already exist
+        let _ = conn.execute_batch(
+            "ALTER TABLE knowledge ADD COLUMN memory_type TEXT NOT NULL DEFAULT 'reference'",
+        );
+        let _ = conn.execute_batch("ALTER TABLE knowledge ADD COLUMN embedding BLOB");
+        let _ = conn.execute_batch(
+            "CREATE INDEX IF NOT EXISTS idx_knowledge_type ON knowledge(memory_type, created_ms)",
+        );
         Ok(Self {
             db: Mutex::new(conn),
         })
