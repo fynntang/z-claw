@@ -39,7 +39,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_fts USING fts5(
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, created_ms);
-CREATE INDEX IF NOT EXISTS idx_knowledge_type ON knowledge(memory_type, created_ms);
+
 ";
 
 /// SQLite-backed implementation of MemoryBackend.
