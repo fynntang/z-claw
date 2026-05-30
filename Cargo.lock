@@ -7647,6 +7647,7 @@ dependencies = [
  "tokio",
  "tracing",
  "z-claw-core",
+ "z-claw-memory",
  "z-claw-security",
 ]
 

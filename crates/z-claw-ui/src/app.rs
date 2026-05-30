@@ -74,7 +74,7 @@ impl AppModel {
 
         let harness = Arc::new(Harness {
             providers: chain,
-            tools: Arc::new(builtin_tools()),
+            tools: Arc::new(builtin_tools(Some(memory.clone()))),
             memory: memory.clone(),
             policy: PolicyEngine::new(vec![], vec!["~".into()], SecurityLevel::ConfirmExecute),
             system_prompt: default_system_prompt(),
@@ -116,7 +116,7 @@ impl AppModel {
                 "ollama".into(),
                 "llama3".into(),
             ))),
-            tools: Arc::new(builtin_tools()),
+            tools: Arc::new(builtin_tools(Some(self.memory.clone()))),
             memory: self.memory.clone(),
             policy: PolicyEngine::new(vec![], vec!["~".into()], SecurityLevel::ConfirmExecute),
             system_prompt: default_system_prompt(),

@@ -26,13 +26,18 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE TABLE IF NOT EXISTS knowledge (
     id TEXT PRIMARY KEY,
+    memory_type TEXT NOT NULL DEFAULT 'reference',
     title TEXT NOT NULL,
     body TEXT NOT NULL DEFAULT '',
     created_ms INTEGER NOT NULL
 );
 
+CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_fts USING fts5(
+    title, body, content='knowledge', content_rowid='rowid'
+);
+
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, created_ms);
-CREATE INDEX IF NOT EXISTS idx_knowledge_created ON knowledge(created_ms);
+CREATE INDEX IF NOT EXISTS idx_knowledge_type ON knowledge(memory_type, created_ms);
 ";
 
 /// SQLite-backed implementation of MemoryBackend.
@@ -196,7 +201,12 @@ impl MemoryBackend for SqliteMemory {
         Ok(())
     }
 
-    async fn store_knowledge(&self, title: &str, body: &str) -> Result<String, ClawError> {
+    async fn store_knowledge(
+        &self,
+        memory_type: &str,
+        title: &str,
+        body: &str,
+    ) -> Result<String, ClawError> {
         let id = uuid::Uuid::new_v4().to_string();
         let ts = now_ms();
         let db = self
@@ -204,10 +214,15 @@ impl MemoryBackend for SqliteMemory {
             .lock()
             .map_err(|e| ClawError::Sqlite(e.to_string()))?;
         db.execute(
-            "INSERT INTO knowledge (id, title, body, created_ms) VALUES (?1, ?2, ?3, ?4)",
-            rusqlite::params![id, title, body, ts],
+            "INSERT INTO knowledge (id, memory_type, title, body, created_ms) VALUES (?1, ?2, ?3, ?4, ?5)",
+            rusqlite::params![id, memory_type, title, body, ts],
         )
         .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+        // Sync to FTS index
+        let _ = db.execute(
+            "INSERT INTO knowledge_fts(rowid, title, body) VALUES (last_insert_rowid(), ?1, ?2)",
+            rusqlite::params![title, body],
+        );
         Ok(id)
     }
 
@@ -216,27 +231,72 @@ impl MemoryBackend for SqliteMemory {
             .db
             .lock()
             .map_err(|e| ClawError::Sqlite(e.to_string()))?;
-        let pattern = format!("%{}%", query);
+        // Try FTS5 first, fall back to LIKE
         let mut stmt = db
             .prepare(
-                "SELECT title, body FROM knowledge \
-                 WHERE title LIKE ?1 OR body LIKE ?1 \
-                 ORDER BY created_ms DESC LIMIT ?2",
+                "SELECT k.memory_type, k.title, k.body FROM knowledge k \
+                 JOIN knowledge_fts fts ON k.rowid = fts.rowid \
+                 WHERE knowledge_fts MATCH ?1 \
+                 ORDER BY rank LIMIT ?2",
             )
-            .map_err(|e| ClawError::Sqlite(e.to_string()))?;
-        let rows = stmt
-            .query_map(rusqlite::params![pattern, limit as i64], |row| {
-                Ok(format!(
-                    "{}: {}",
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?
-                ))
-            })
-            .map_err(|e| ClawError::Sqlite(e.to_string()))?;
-        let mut results = Vec::new();
-        for row in rows {
-            results.push(row.map_err(|e| ClawError::Sqlite(e.to_string()))?);
-        }
+            .map_err(|_| {
+                // FTS may not exist yet, will fall back below
+            });
+        let results = match stmt {
+            Ok(ref mut s) => {
+                let rows = s
+                    .query_map(rusqlite::params![query, limit as i64], |row| {
+                        Ok(format!(
+                            "[{}] {}: {}",
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?
+                        ))
+                    })
+                    .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+                let mut v = Vec::new();
+                for row in rows {
+                    v.push(row.map_err(|e| ClawError::Sqlite(e.to_string()))?);
+                }
+                v
+            }
+            Err(_) => {
+                // Fallback to LIKE
+                let pattern = format!("%{}%", query);
+                let mut s = db
+                    .prepare(
+                        "SELECT memory_type, title, body FROM knowledge \
+                     WHERE title LIKE ?1 OR body LIKE ?1 \
+                     ORDER BY created_ms DESC LIMIT ?2",
+                    )
+                    .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+                let rows = s
+                    .query_map(rusqlite::params![pattern, limit as i64], |row| {
+                        Ok(format!(
+                            "[{}] {}: {}",
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?
+                        ))
+                    })
+                    .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+                let mut v = Vec::new();
+                for row in rows {
+                    v.push(row.map_err(|e| ClawError::Sqlite(e.to_string()))?);
+                }
+                v
+            }
+        };
         Ok(results)
+    }
+
+    async fn forget_knowledge(&self, id: &str) -> Result<(), ClawError> {
+        let db = self
+            .db
+            .lock()
+            .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+        db.execute("DELETE FROM knowledge WHERE id = ?1", rusqlite::params![id])
+            .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+        Ok(())
     }
 }

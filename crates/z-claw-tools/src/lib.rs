@@ -1,14 +1,17 @@
 mod filesystem;
 mod http;
+mod memory_tools;
 mod shell;
 
 pub use filesystem::{ListDirectoryTool, ReadFileTool, WriteFileTool};
 pub use http::HttpRequestTool;
+pub use memory_tools::{ForgetKnowledgeTool, SearchMemoryTool, StoreKnowledgeTool};
 pub use shell::ExecuteCommandTool;
 
 use async_trait::async_trait;
 use std::sync::Arc;
 use z_claw_core::ToolDef;
+use z_claw_memory::MemoryBackend;
 
 /// A tool that can be called by the agent.
 #[async_trait]
@@ -54,12 +57,17 @@ impl ToolRegistry {
 }
 
 /// Register all built-in tools.
-pub fn builtin_tools() -> ToolRegistry {
+pub fn builtin_tools(memory: Option<Arc<dyn MemoryBackend>>) -> ToolRegistry {
     let mut registry = ToolRegistry::new();
     registry.register(Arc::new(filesystem::ReadFileTool));
     registry.register(Arc::new(filesystem::WriteFileTool));
     registry.register(Arc::new(filesystem::ListDirectoryTool));
     registry.register(Arc::new(http::HttpRequestTool));
     registry.register(Arc::new(shell::ExecuteCommandTool));
+    if let Some(mem) = memory {
+        registry.register(Arc::new(memory_tools::StoreKnowledgeTool::new(mem.clone())));
+        registry.register(Arc::new(memory_tools::SearchMemoryTool::new(mem.clone())));
+        registry.register(Arc::new(memory_tools::ForgetKnowledgeTool::new(mem)));
+    }
     registry
 }

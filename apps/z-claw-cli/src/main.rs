@@ -61,7 +61,7 @@ async fn build_agent() -> AgentLoop {
     let chain = ProviderChain::from_single(provider);
     let harness = Arc::new(Harness {
         providers: chain,
-        tools: Arc::new(builtin_tools()),
+        tools: Arc::new(builtin_tools(None)),
         memory: Arc::new(NoopMemory),
         policy: PolicyEngine::new(
             config.policy.blocked_commands,

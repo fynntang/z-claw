@@ -26,6 +26,7 @@ pub trait MemoryBackend: Send + Sync {
     async fn rename_session(&self, id: &str, title: &str) -> Result<(), z_claw_core::ClawError>;
     async fn store_knowledge(
         &self,
+        memory_type: &str,
         title: &str,
         body: &str,
     ) -> Result<String, z_claw_core::ClawError>;
@@ -34,6 +35,7 @@ pub trait MemoryBackend: Send + Sync {
         query: &str,
         limit: usize,
     ) -> Result<Vec<String>, z_claw_core::ClawError>;
+    async fn forget_knowledge(&self, id: &str) -> Result<(), z_claw_core::ClawError>;
 }
 
 /// A no-op memory backend for MVP (no persistence).
@@ -71,6 +73,7 @@ impl MemoryBackend for NoopMemory {
     }
     async fn store_knowledge(
         &self,
+        _memory_type: &str,
         _title: &str,
         _body: &str,
     ) -> Result<String, z_claw_core::ClawError> {
@@ -82,5 +85,8 @@ impl MemoryBackend for NoopMemory {
         _limit: usize,
     ) -> Result<Vec<String>, z_claw_core::ClawError> {
         Ok(vec![])
+    }
+    async fn forget_knowledge(&self, _id: &str) -> Result<(), z_claw_core::ClawError> {
+        Ok(())
     }
 }
