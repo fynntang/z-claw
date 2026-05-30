@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use z_claw_core::HistoryMessage;
 
+pub mod embedding;
 mod sqlite;
 
 pub use sqlite::SqliteMemory;
@@ -36,6 +37,13 @@ pub trait MemoryBackend: Send + Sync {
         limit: usize,
     ) -> Result<Vec<String>, z_claw_core::ClawError>;
     async fn forget_knowledge(&self, id: &str) -> Result<(), z_claw_core::ClawError>;
+    async fn search_semantic(
+        &self,
+        _query: &str,
+        _limit: usize,
+    ) -> Result<Vec<(String, f32)>, z_claw_core::ClawError> {
+        Ok(vec![])
+    }
 }
 
 /// A no-op memory backend for MVP (no persistence).

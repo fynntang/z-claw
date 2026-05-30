@@ -5,6 +5,7 @@ use rusqlite::Connection;
 use z_claw_core::{ClawError, HistoryMessage};
 
 use crate::MemoryBackend;
+use crate::embedding;
 
 const SCHEMA_SQL: &str = "
 CREATE TABLE IF NOT EXISTS sessions (
@@ -29,6 +30,7 @@ CREATE TABLE IF NOT EXISTS knowledge (
     memory_type TEXT NOT NULL DEFAULT 'reference',
     title TEXT NOT NULL,
     body TEXT NOT NULL DEFAULT '',
+    embedding BLOB,
     created_ms INTEGER NOT NULL
 );
 
@@ -209,13 +211,20 @@ impl MemoryBackend for SqliteMemory {
     ) -> Result<String, ClawError> {
         let id = uuid::Uuid::new_v4().to_string();
         let ts = now_ms();
+
+        // Try embedding the content for semantic search
+        let emb_blob = embedding::get_embedding(&format!("{title}: {body}"))
+            .await
+            .ok()
+            .map(|v| embedding::encode_vector(&v));
+
         let db = self
             .db
             .lock()
             .map_err(|e| ClawError::Sqlite(e.to_string()))?;
         db.execute(
-            "INSERT INTO knowledge (id, memory_type, title, body, created_ms) VALUES (?1, ?2, ?3, ?4, ?5)",
-            rusqlite::params![id, memory_type, title, body, ts],
+            "INSERT INTO knowledge (id, memory_type, title, body, embedding, created_ms) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            rusqlite::params![id, memory_type, title, body, emb_blob, ts],
         )
         .map_err(|e| ClawError::Sqlite(e.to_string()))?;
         // Sync to FTS index
@@ -298,5 +307,42 @@ impl MemoryBackend for SqliteMemory {
         db.execute("DELETE FROM knowledge WHERE id = ?1", rusqlite::params![id])
             .map_err(|e| ClawError::Sqlite(e.to_string()))?;
         Ok(())
+    }
+
+    async fn search_semantic(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<(String, f32)>, ClawError> {
+        // Get embedding for the query
+        let q_vec = embedding::get_embedding(query)
+            .await
+            .map_err(|e| ClawError::Sqlite(format!("Embedding error: {e}")))?;
+
+        let db = self
+            .db
+            .lock()
+            .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+        let mut stmt = db
+            .prepare("SELECT title, embedding FROM knowledge WHERE embedding IS NOT NULL")
+            .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+
+        let mut results: Vec<(String, f32)> = Vec::new();
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?))
+            })
+            .map_err(|e| ClawError::Sqlite(e.to_string()))?;
+
+        for row in rows {
+            let (title, emb_bytes) = row.map_err(|e| ClawError::Sqlite(e.to_string()))?;
+            let emb = embedding::decode_vector(&emb_bytes);
+            let sim = embedding::cosine_similarity(&q_vec, &emb);
+            results.push((title, sim));
+        }
+
+        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        results.truncate(limit);
+        Ok(results)
     }
 }
