@@ -51,18 +51,42 @@ impl AppModel {
                 .expect("failed to create SQLite memory backend"),
         );
 
-        // Primary: Ollama (local, always available)
-        let ollama = Arc::new(OpenAiProvider::new(
-            "ollama".into(),
-            "http://localhost:11434/v1".into(),
-            "ollama".into(),
-            "llama3".into(),
-        ));
+        // Build provider chain: local first, then cloud fallbacks
+        let mut providers: Vec<Arc<dyn LlmProvider>> = vec![
+            // Primary: Ollama (local, always available)
+            Arc::new(OpenAiProvider::new(
+                "ollama".into(),
+                "http://localhost:11434/v1".into(),
+                "ollama".into(),
+                "llama3".into(),
+            )),
+        ];
 
-        // Build provider chain with fallback
-        let mut providers: Vec<Arc<dyn LlmProvider>> = vec![ollama];
+        // OpenAI if API key is set
+        if let Ok(key) = std::env::var("OPENAI_API_KEY") {
+            if !key.is_empty() {
+                providers.push(Arc::new(OpenAiProvider::new(
+                    "openai".into(),
+                    "https://api.openai.com/v1".into(),
+                    key,
+                    "gpt-4o".into(),
+                )));
+            }
+        }
 
-        // Fallback: Anthropic if API key is set
+        // DeepSeek if API key is set
+        if let Ok(key) = std::env::var("DEEPSEEK_API_KEY") {
+            if !key.is_empty() {
+                providers.push(Arc::new(OpenAiProvider::new(
+                    "deepseek".into(),
+                    "https://api.deepseek.com/v1".into(),
+                    key,
+                    "deepseek-chat".into(),
+                )));
+            }
+        }
+
+        // Anthropic if API key is set
         if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
             if !key.is_empty() {
                 providers.push(Arc::new(AnthropicProvider::new(
@@ -72,6 +96,7 @@ impl AppModel {
                 )));
             }
         }
+
         let chain = ProviderChain::new(providers);
 
         let harness = Arc::new(Harness {

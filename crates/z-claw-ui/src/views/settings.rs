@@ -113,23 +113,31 @@ impl RenderOnce for SettingsPanel {
                                     .mb(px(6.0))
                                     .child("Provider"),
                             )
-                            .child(div().flex().flex_col().gap_2().children(
-                                ["ollama", "anthropic"].iter().map(|&p| {
-                                    let active = self.settings.provider_type == p;
-                                    div()
-                                        .px(px(12.0))
-                                        .py(px(8.0))
-                                        .rounded_md()
-                                        .bg(if active { theme.accent } else { theme.surface })
-                                        .text_color(if active {
-                                            theme.background
-                                        } else {
-                                            theme.text
-                                        })
-                                        .cursor_pointer()
-                                        .child(p)
-                                }),
-                            )),
+                            .child(
+                                div().flex().flex_col().gap_2().children(
+                                    ["ollama", "openai", "deepseek", "anthropic"].iter().map(
+                                        |&p| {
+                                            let active = self.settings.provider_type == p;
+                                            div()
+                                                .px(px(12.0))
+                                                .py(px(8.0))
+                                                .rounded_md()
+                                                .bg(if active {
+                                                    theme.accent
+                                                } else {
+                                                    theme.surface
+                                                })
+                                                .text_color(if active {
+                                                    theme.background
+                                                } else {
+                                                    theme.text
+                                                })
+                                                .cursor_pointer()
+                                                .child(p)
+                                        },
+                                    ),
+                                ),
+                            ),
                     )
                     .child(
                         div()

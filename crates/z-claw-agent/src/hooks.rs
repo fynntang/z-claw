@@ -1,6 +1,5 @@
 use std::process::Command;
 
-/// Hook event types that can trigger hook execution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HookEvent {
     PreToolUse,
@@ -25,12 +24,18 @@ impl HookEvent {
     }
 }
 
-/// A configured hook with event, optional tool matcher, and shell command.
+#[derive(Debug, Clone)]
+pub enum HookType {
+    Command(String),
+    Http { url: String, method: String },
+    Prompt(String),
+}
+
 #[derive(Debug, Clone)]
 pub struct Hook {
     pub event: HookEvent,
     pub matcher: Option<String>,
-    pub command: String,
+    pub hook_type: HookType,
     pub timeout_secs: u64,
 }
 
@@ -39,7 +44,28 @@ impl Hook {
         Self {
             event,
             matcher: None,
-            command,
+            hook_type: HookType::Command(command),
+            timeout_secs: 30,
+        }
+    }
+
+    pub fn http(event: HookEvent, url: &str, method: &str) -> Self {
+        Self {
+            event,
+            matcher: None,
+            hook_type: HookType::Http {
+                url: url.to_string(),
+                method: method.to_string(),
+            },
+            timeout_secs: 30,
+        }
+    }
+
+    pub fn prompt(event: HookEvent, prompt: &str) -> Self {
+        Self {
+            event,
+            matcher: None,
+            hook_type: HookType::Prompt(prompt.to_string()),
             timeout_secs: 30,
         }
     }
@@ -50,7 +76,6 @@ impl Hook {
     }
 }
 
-/// Registry of configured hooks, executed by the agent at lifecycle events.
 pub struct HookRegistry {
     hooks: Vec<Hook>,
 }
@@ -59,12 +84,10 @@ impl HookRegistry {
     pub fn new() -> Self {
         Self { hooks: Vec::new() }
     }
-
     pub fn register(&mut self, hook: Hook) {
         self.hooks.push(hook);
     }
 
-    /// Run all hooks matching the given event and optional tool name.
     pub fn run_hooks(&self, event: &HookEvent, tool_name: Option<&str>) {
         for hook in &self.hooks {
             if &hook.event != event {
@@ -77,35 +100,57 @@ impl HookRegistry {
                     }
                 }
             }
-            run_command_hook(hook, tool_name);
+            execute_hook(hook, tool_name);
         }
     }
 }
 
-fn run_command_hook(hook: &Hook, tool_name: Option<&str>) {
-    let mut cmd = if cfg!(target_os = "windows") {
-        let mut c = Command::new("cmd");
-        c.args(["/C", &hook.command]);
-        c
-    } else {
-        let mut c = Command::new("sh");
-        c.args(["-c", &hook.command]);
-        c
-    };
-
-    if let Some(name) = tool_name {
-        cmd.env("HOOK_TOOL_NAME", name);
-    }
-
-    match cmd.output() {
-        Ok(output) => {
-            if !output.status.success() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                tracing::warn!("Hook {:?} failed: {}", hook.event, stderr.trim());
+fn execute_hook(hook: &Hook, tool_name: Option<&str>) {
+    match &hook.hook_type {
+        HookType::Command(cmd) => {
+            let mut child = if cfg!(target_os = "windows") {
+                let mut c = Command::new("cmd");
+                c.args(["/C", cmd]);
+                c
+            } else {
+                let mut c = Command::new("sh");
+                c.args(["-c", cmd]);
+                c
+            };
+            if let Some(name) = tool_name {
+                child.env("HOOK_TOOL_NAME", name);
+            }
+            match child.output() {
+                Ok(o) => {
+                    if !o.status.success() {
+                        tracing::warn!(
+                            "Hook cmd failed: {}",
+                            String::from_utf8_lossy(&o.stderr).trim()
+                        );
+                    }
+                }
+                Err(e) => tracing::warn!("Hook cmd error: {e}"),
             }
         }
-        Err(e) => {
-            tracing::warn!("Hook {:?} error: {}", hook.event, e);
+        HookType::Http { url, method } => {
+            // HTTP hooks are spawned as fire-and-forget
+            let url = url.clone();
+            let method = method.clone();
+            tokio::spawn(async move {
+                let client = reqwest::Client::new();
+                let req = match method.to_uppercase().as_str() {
+                    "POST" => client.post(&url),
+                    _ => client.get(&url),
+                };
+                match req.send().await {
+                    Ok(r) => tracing::info!("Hook HTTP {} {} → {}", method, url, r.status()),
+                    Err(e) => tracing::warn!("Hook HTTP error: {e}"),
+                }
+            });
+        }
+        HookType::Prompt(prompt) => {
+            tracing::info!("Hook prompt: {prompt}");
+            // Prompt hooks are informational — the prompt text is logged for agent context
         }
     }
 }

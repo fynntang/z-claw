@@ -1,8 +1,10 @@
 mod hooks;
 mod scheduler;
+mod task;
 
 pub use hooks::{Hook, HookEvent, HookRegistry};
 pub use scheduler::{CronScheduler, CronTask};
+pub use task::{Task, TaskRegistry, TaskStatus};
 
 use std::sync::Arc;
 use tokio::sync::mpsc;

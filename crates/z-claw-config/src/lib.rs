@@ -213,3 +213,6 @@ pub fn resolve_api_key(def: &ProviderDef) -> Option<String> {
     // 2. Fall back to inline key
     def.api_key.clone().filter(|k| !k.trim().is_empty())
 }
+
+mod keybindings;
+pub use keybindings::{KeyBinding, KeybindingConfig};
