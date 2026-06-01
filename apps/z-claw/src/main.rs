@@ -1,5 +1,4 @@
 use std::ops::Range;
-use std::sync::Arc;
 
 use gpui::prelude::*;
 use gpui::*;
@@ -50,6 +49,7 @@ struct MainWindow {
     focus_handle: FocusHandle,
     sessions: Vec<SessionSummary>,
     show_settings: bool,
+    current_settings: ProviderSettings,
 }
 
 impl MainWindow {
@@ -84,6 +84,12 @@ impl MainWindow {
             focus_handle: cx.focus_handle(),
             sessions: Vec::new(),
             show_settings: false,
+            current_settings: ProviderSettings {
+                provider_type: "ollama".into(),
+                model: "llama3".into(),
+                endpoint: "http://localhost:11434/v1".into(),
+                api_key: "".into(),
+            },
         }
     }
 
@@ -117,14 +123,6 @@ impl Render for MainWindow {
         self.app_model.update(cx, |model, _cx| {
             model.input_text = self.input_text.to_string();
         });
-
-        let app_model = self.app_model.clone();
-        let send_handler: Arc<dyn Fn(&MouseDownEvent, &mut Window, &mut App) + Send + Sync> =
-            Arc::new(move |_, _, cx| {
-                app_model.update(cx, |model, cx| {
-                    model.send_message(cx);
-                });
-            });
 
         let app_model_new = self.app_model.clone();
         let show_settings = self.show_settings;
@@ -236,21 +234,28 @@ impl Render for MainWindow {
         }
 
         if show_settings {
-            let current = ProviderSettings {
-                provider_type: "ollama".into(),
-                model: "llama3".into(),
-                endpoint: "http://localhost:11434/v1".into(),
-                api_key: "".into(),
-            };
-            root = root.child(SettingsPanel::new(current).on_close({
-                let entity = cx.entity();
-                move |_, cx| {
-                    entity.update(cx, |this: &mut MainWindow, cx| {
-                        this.show_settings = false;
-                        cx.notify();
-                    });
-                }
-            }));
+            let current = self.current_settings.clone();
+            root = root.child(
+                SettingsPanel::new(current)
+                    .on_provider_change({
+                        let entity = cx.entity();
+                        move |provider, cx| {
+                            entity.update(cx, |this: &mut MainWindow, cx| {
+                                this.current_settings.provider_type = provider;
+                                cx.notify();
+                            });
+                        }
+                    })
+                    .on_close({
+                        let entity = cx.entity();
+                        move |_, cx| {
+                            entity.update(cx, |this: &mut MainWindow, cx| {
+                                this.show_settings = false;
+                                cx.notify();
+                            });
+                        }
+                    }),
+            );
         }
 
         root

@@ -17,6 +17,7 @@ pub struct SessionSummary {
 pub struct Sidebar {
     pub sessions: Vec<SessionSummary>,
     pub on_new_session: Option<Arc<dyn Fn(&MouseDownEvent, &mut Window, &mut App) + Send + Sync>>,
+    pub on_select_session: Option<Arc<dyn Fn(String, &mut Window, &mut App) + Send + Sync>>,
 }
 
 impl Sidebar {
@@ -24,6 +25,7 @@ impl Sidebar {
         Self {
             sessions: Vec::new(),
             on_new_session: None,
+            on_select_session: None,
         }
     }
 
@@ -37,6 +39,14 @@ impl Sidebar {
         handler: impl Fn(&MouseDownEvent, &mut Window, &mut App) + Send + Sync + 'static,
     ) -> Self {
         self.on_new_session = Some(Arc::new(handler));
+        self
+    }
+
+    pub fn on_select_session(
+        mut self,
+        handler: impl Fn(String, &mut Window, &mut App) + Send + Sync + 'static,
+    ) -> Self {
+        self.on_select_session = Some(Arc::new(handler));
         self
     }
 }
@@ -87,6 +97,8 @@ impl RenderOnce for Sidebar {
             .child(
                 // Session list
                 div().flex_1().children(self.sessions.iter().map(|s| {
+                    let session_id = s.id.clone();
+                    let h = self.on_select_session.clone();
                     div()
                         .px(px(12.0))
                         .py(px(8.0))
@@ -95,6 +107,8 @@ impl RenderOnce for Sidebar {
                         .rounded_md()
                         .text_color(theme.text_muted)
                         .text_sm()
+                        .cursor_pointer()
+                        .hover(|el| el.bg(theme.surface))
                         .child(s.title.clone())
                         .child(
                             div()
@@ -102,6 +116,14 @@ impl RenderOnce for Sidebar {
                                 .text_color(theme.text_subtle)
                                 .child(s.id[..8].to_string()),
                         )
+                        .on_mouse_down(MouseButton::Left, {
+                            let id = session_id.clone();
+                            move |_, window, cx| {
+                                if let Some(ref h) = h {
+                                    h(id.clone(), window, cx);
+                                }
+                            }
+                        })
                 })),
             )
     }

@@ -19,6 +19,7 @@ pub struct SettingsPanel {
     pub settings: ProviderSettings,
     pub on_close: Option<Arc<dyn Fn(&MouseDownEvent, &mut App) + Send + Sync>>,
     pub on_save: Option<Arc<dyn Fn(ProviderSettings, &mut App) + Send + Sync>>,
+    pub on_provider_change: Option<Arc<dyn Fn(String, &mut App) + Send + Sync>>,
 }
 
 impl SettingsPanel {
@@ -27,6 +28,7 @@ impl SettingsPanel {
             settings,
             on_close: None,
             on_save: None,
+            on_provider_change: None,
         }
     }
 
@@ -43,6 +45,14 @@ impl SettingsPanel {
         h: impl Fn(ProviderSettings, &mut App) + Send + Sync + 'static,
     ) -> Self {
         self.on_save = Some(Arc::new(h));
+        self
+    }
+
+    pub fn on_provider_change(
+        mut self,
+        h: impl Fn(String, &mut App) + Send + Sync + 'static,
+    ) -> Self {
+        self.on_provider_change = Some(Arc::new(h));
         self
     }
 }
@@ -113,6 +123,7 @@ impl RenderOnce for SettingsPanel {
                                 .iter()
                                 .map(|&p| {
                                     let active = self.settings.provider_type == p;
+                                    let provider = p.to_string();
                                     div()
                                         .px(px(12.0))
                                         .py(px(8.0))
@@ -125,6 +136,15 @@ impl RenderOnce for SettingsPanel {
                                         })
                                         .cursor_pointer()
                                         .child(p)
+                                        .on_mouse_down(MouseButton::Left, {
+                                            let h = self.on_provider_change.clone();
+                                            let provider = provider.clone();
+                                            move |_, _, cx| {
+                                                if let Some(ref h) = h {
+                                                    h(provider.clone(), cx);
+                                                }
+                                            }
+                                        })
                                 }),
                         ),
                     )
@@ -179,9 +199,11 @@ fn info_row(label: &str, value: &str, theme: &ThemeColors) -> impl IntoElement {
                 .mt(px(2.0))
                 .px(px(8.0))
                 .py(px(4.0))
-                .bg(theme.surface)
+                .bg(theme.background)
                 .rounded_md()
-                .child(Label::new(value).color(theme.text)),
+                .border_1()
+                .border_color(theme.border)
+                .child(Label::new(format!("{value} |")).color(theme.text)),
         )
 }
 
