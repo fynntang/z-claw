@@ -51,7 +51,7 @@ impl RenderOnce for MessageBubble {
                         .py(px(10.0))
                         .text_color(theme.text)
                         .text_sm()
-                        .child(render_markdown(&self.message.content, theme));
+                        .child(render_markdown(&self.message.content, cx));
 
                     if has_tools {
                         bubble = bubble.children(self.message.tool_calls.iter().map(|tc| {

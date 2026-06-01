@@ -1,9 +1,10 @@
+use crate::components::{Label, LabelSize};
 use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
 
 /// Simple Markdown text renderer. Supports ```code blocks```, **bold**, `inline code`.
-pub fn render_markdown(text: &str, theme: &ThemeColors) -> impl IntoElement {
+pub fn render_markdown(text: &str, cx: &App) -> impl IntoElement {
     let segments = parse_segments(text);
     div()
         .flex()
@@ -11,26 +12,30 @@ pub fn render_markdown(text: &str, theme: &ThemeColors) -> impl IntoElement {
         .children(segments.into_iter().map(|seg| {
             match seg {
                 Segment::CodeBlock { language: _, code } => div()
-                    .bg(theme.sidebar_bg)
+                    .bg(theme_colors(cx).sidebar_bg)
                     .rounded_md()
                     .px(px(12.0))
                     .py(px(8.0))
                     .my_1()
-                    .text_xs()
-                    .text_color(theme.text)
-                    .child(code),
+                    .child(Label::new(code).size(LabelSize::Xs)),
                 Segment::InlineCode(code) => div()
-                    .bg(theme.sidebar_bg)
+                    .bg(theme_colors(cx).sidebar_bg)
                     .px(px(4.0))
                     .rounded_sm()
-                    .text_xs()
-                    .text_color(theme.accent)
-                    .child(code),
-                Segment::Bold(text) => div().font_weight(FontWeight::BOLD).child(text),
-                Segment::Text(text) => div().child(text),
+                    .child(
+                        Label::new(code)
+                            .color(theme_colors(cx).accent)
+                            .size(LabelSize::Xs),
+                    ),
+                Segment::Bold(text) => div().child(Label::new(text).weight(FontWeight::BOLD)),
+                Segment::Text(text) => div().child(Label::new(text)),
                 Segment::LineBreak => div().h(px(4.0)),
             }
         }))
+}
+
+fn theme_colors(cx: &App) -> ThemeColors {
+    *cx.global::<ThemeColors>()
 }
 
 enum Segment {
