@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use crate::components::ChatInputBar;
-use crate::components::MessageBubble;
+use crate::components::{ChatInputBar, Label, LabelSize, MessageBubble};
 use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
@@ -33,13 +32,17 @@ impl RenderOnce for ChatView {
                 .flex_col()
                 .items_center()
                 .justify_center()
-                .child(div().text_xl().text_color(theme.text_muted).child("z-claw"))
                 .child(
-                    div()
-                        .mt(px(4.0))
-                        .text_sm()
-                        .text_color(theme.text_subtle)
-                        .child("Start a conversation. Type a message and press Send."),
+                    Label::new("z-claw")
+                        .color(theme.text_muted)
+                        .size(LabelSize::Lg),
+                )
+                .child(
+                    div().mt(px(4.0)).child(
+                        Label::new("Start a conversation. Type a message and press Send.")
+                            .color(theme.text_subtle)
+                            .size(LabelSize::Sm),
+                    ),
                 )
         };
 

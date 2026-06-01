@@ -1,5 +1,6 @@
 use crate::app::MessageItem;
 use crate::components::markdown::render_markdown;
+use crate::components::{Label, LabelSize};
 use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
@@ -36,11 +37,11 @@ impl RenderOnce for MessageBubble {
                 .flex_col()
                 .max_w(px(560.0))
                 .child(
-                    div()
-                        .text_xs()
-                        .text_color(theme.text_muted)
-                        .mb_1()
-                        .child(role_label),
+                    div().mb_1().child(
+                        Label::new(role_label)
+                            .color(theme.text_muted)
+                            .size(LabelSize::Xs),
+                    ),
                 )
                 .child({
                     let mut bubble = div()
@@ -67,16 +68,15 @@ impl RenderOnce for MessageBubble {
                                 .pt_1()
                                 .border_t_1()
                                 .border_color(theme.border)
-                                .text_xs()
                                 .child(
-                                    div()
-                                        .text_color(status_color)
-                                        .child(format!("[{}]", tc.status)),
+                                    Label::new(format!("[{}]", tc.status))
+                                        .color(status_color)
+                                        .size(LabelSize::Xs),
                                 )
                                 .child(
-                                    div()
-                                        .text_color(theme.text_muted)
-                                        .child(format!("{} — {}", tc.name, tc.summary)),
+                                    Label::new(format!("{} — {}", tc.name, tc.summary))
+                                        .color(theme.text_muted)
+                                        .size(LabelSize::Xs),
                                 )
                         }));
                     }
