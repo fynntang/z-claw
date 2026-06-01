@@ -14,21 +14,33 @@ pub struct ProviderSettings {
     pub api_key: String,
 }
 
+/// Which settings field is currently being edited.
+#[derive(Clone, PartialEq)]
+pub enum SettingsField {
+    Model,
+    Endpoint,
+    ApiKey,
+}
+
 #[derive(IntoElement)]
 pub struct SettingsPanel {
     pub settings: ProviderSettings,
+    pub editing_field: Option<SettingsField>,
     pub on_close: Option<Arc<dyn Fn(&MouseDownEvent, &mut App) + Send + Sync>>,
     pub on_save: Option<Arc<dyn Fn(ProviderSettings, &mut App) + Send + Sync>>,
     pub on_provider_change: Option<Arc<dyn Fn(String, &mut App) + Send + Sync>>,
+    pub on_field_click: Option<Arc<dyn Fn(SettingsField, &mut App) + Send + Sync>>,
 }
 
 impl SettingsPanel {
-    pub fn new(settings: ProviderSettings) -> Self {
+    pub fn new(settings: ProviderSettings, editing_field: Option<SettingsField>) -> Self {
         Self {
             settings,
+            editing_field,
             on_close: None,
             on_save: None,
             on_provider_change: None,
+            on_field_click: None,
         }
     }
 
@@ -53,6 +65,14 @@ impl SettingsPanel {
         h: impl Fn(String, &mut App) + Send + Sync + 'static,
     ) -> Self {
         self.on_provider_change = Some(Arc::new(h));
+        self
+    }
+
+    pub fn on_field_click(
+        mut self,
+        h: impl Fn(SettingsField, &mut App) + Send + Sync + 'static,
+    ) -> Self {
+        self.on_field_click = Some(Arc::new(h));
         self
     }
 }
@@ -153,11 +173,28 @@ impl RenderOnce for SettingsPanel {
                             .flex()
                             .flex_col()
                             .gap(px(10.0))
-                            .child(info_row("Model", &self.settings.model, theme))
-                            .child(info_row("Endpoint", &self.settings.endpoint, theme))
-                            .child(info_row(
+                            .child(editable_row(
+                                "Model",
+                                &self.settings.model,
+                                SettingsField::Model,
+                                &self.editing_field,
+                                &self.on_field_click,
+                                theme,
+                            ))
+                            .child(editable_row(
+                                "Endpoint",
+                                &self.settings.endpoint,
+                                SettingsField::Endpoint,
+                                &self.editing_field,
+                                &self.on_field_click,
+                                theme,
+                            ))
+                            .child(editable_row(
                                 "API Key",
                                 &mask_key(&self.settings.api_key),
+                                SettingsField::ApiKey,
+                                &self.editing_field,
+                                &self.on_field_click,
                                 theme,
                             )),
                     )
@@ -180,10 +217,24 @@ impl RenderOnce for SettingsPanel {
     }
 }
 
-fn info_row(label: &str, value: &str, theme: &ThemeColors) -> impl IntoElement {
+fn editable_row(
+    label: &str,
+    value: &str,
+    field: SettingsField,
+    active_field: &Option<SettingsField>,
+    on_click: &Option<Arc<dyn Fn(SettingsField, &mut App) + Send + Sync>>,
+    theme: &ThemeColors,
+) -> impl IntoElement {
     let label = label.to_string();
     let value = value.to_string();
     let theme = *theme;
+    let is_active = active_field.as_ref() == Some(&field);
+    let border_color = if is_active {
+        theme.accent
+    } else {
+        theme.border
+    };
+
     div()
         .flex()
         .flex_col()
@@ -202,8 +253,25 @@ fn info_row(label: &str, value: &str, theme: &ThemeColors) -> impl IntoElement {
                 .bg(theme.background)
                 .rounded_md()
                 .border_1()
-                .border_color(theme.border)
-                .child(Label::new(format!("{value} |")).color(theme.text)),
+                .border_color(border_color)
+                .cursor_pointer()
+                .child(
+                    Label::new(if is_active {
+                        format!("{value} |")
+                    } else {
+                        value
+                    })
+                    .color(theme.text),
+                )
+                .on_mouse_down(MouseButton::Left, {
+                    let h = on_click.clone();
+                    let field = field.clone();
+                    move |_, _, cx| {
+                        if let Some(ref h) = h {
+                            h(field.clone(), cx);
+                        }
+                    }
+                }),
         )
 }
 

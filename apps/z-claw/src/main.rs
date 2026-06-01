@@ -5,7 +5,7 @@ use gpui::*;
 use gpui_platform::application;
 use z_claw_assets::Assets;
 use z_claw_ui::components::{Button, ButtonVariant};
-use z_claw_ui::views::settings::ProviderSettings;
+use z_claw_ui::views::settings::{ProviderSettings, SettingsField};
 use z_claw_ui::views::sidebar::SessionSummary;
 use z_claw_ui::{AppModel, ApprovalDialog, ChatView, SettingsPanel, Sidebar, ThemeColors};
 
@@ -50,6 +50,7 @@ struct MainWindow {
     sessions: Vec<SessionSummary>,
     show_settings: bool,
     current_settings: ProviderSettings,
+    editing_field: Option<SettingsField>,
 }
 
 impl MainWindow {
@@ -90,6 +91,7 @@ impl MainWindow {
                 endpoint: "http://localhost:11434/v1".into(),
                 api_key: "".into(),
             },
+            editing_field: None,
         }
     }
 
@@ -102,6 +104,42 @@ impl MainWindow {
             model.send_text(&text, cx);
         });
         cx.notify();
+    }
+
+    /// Apply a character to the currently editing settings field.
+    fn apply_to_field(&mut self, text: &str, cx: &mut Context<Self>) {
+        if let Some(ref field) = self.editing_field {
+            match field {
+                SettingsField::Model => {
+                    self.current_settings.model.push_str(text);
+                }
+                SettingsField::Endpoint => {
+                    self.current_settings.endpoint.push_str(text);
+                }
+                SettingsField::ApiKey => {
+                    self.current_settings.api_key.push_str(text);
+                }
+            }
+            cx.notify();
+        }
+    }
+
+    /// Backspace in the currently editing settings field.
+    fn backspace_field(&mut self, cx: &mut Context<Self>) {
+        if let Some(ref field) = self.editing_field {
+            match field {
+                SettingsField::Model => {
+                    self.current_settings.model.pop();
+                }
+                SettingsField::Endpoint => {
+                    self.current_settings.endpoint.pop();
+                }
+                SettingsField::ApiKey => {
+                    self.current_settings.api_key.pop();
+                }
+            }
+            cx.notify();
+        }
     }
 }
 
@@ -168,7 +206,6 @@ impl Render for MainWindow {
                             .border_t_1()
                             .border_color(theme.border)
                             .child(
-                                // Text input display area
                                 div()
                                     .flex_1()
                                     .px(px(12.0))
@@ -176,7 +213,11 @@ impl Render for MainWindow {
                                     .bg(theme.background)
                                     .rounded_md()
                                     .border_1()
-                                    .border_color(theme.border)
+                                    .border_color(if self.editing_field.is_none() {
+                                        theme.border
+                                    } else {
+                                        theme.text_subtle
+                                    })
                                     .text_sm()
                                     .text_color(if self.input_text.is_empty() {
                                         theme.text_subtle
@@ -235,8 +276,9 @@ impl Render for MainWindow {
 
         if show_settings {
             let current = self.current_settings.clone();
+            let editing = self.editing_field.clone();
             root = root.child(
-                SettingsPanel::new(current)
+                SettingsPanel::new(current, editing)
                     .on_provider_change({
                         let entity = cx.entity();
                         move |provider, cx| {
@@ -246,11 +288,21 @@ impl Render for MainWindow {
                             });
                         }
                     })
+                    .on_field_click({
+                        let entity = cx.entity();
+                        move |field, cx| {
+                            entity.update(cx, |this: &mut MainWindow, cx| {
+                                this.editing_field = Some(field);
+                                cx.notify();
+                            });
+                        }
+                    })
                     .on_close({
                         let entity = cx.entity();
                         move |_, cx| {
                             entity.update(cx, |this: &mut MainWindow, cx| {
                                 this.show_settings = false;
+                                this.editing_field = None;
                                 cx.notify();
                             });
                         }
@@ -272,7 +324,16 @@ impl EntityInputHandler for MainWindow {
         _window: &mut Window,
         _cx: &mut Context<Self>,
     ) -> Option<String> {
-        Some(self.input_text.to_string())
+        if self.editing_field.is_some() {
+            let value = match self.editing_field.as_ref().unwrap() {
+                SettingsField::Model => &self.current_settings.model,
+                SettingsField::Endpoint => &self.current_settings.endpoint,
+                SettingsField::ApiKey => &self.current_settings.api_key,
+            };
+            Some(value.clone())
+        } else {
+            Some(self.input_text.to_string())
+        }
     }
 
     fn selected_text_range(
@@ -281,7 +342,15 @@ impl EntityInputHandler for MainWindow {
         _window: &mut Window,
         _cx: &mut Context<Self>,
     ) -> Option<UTF16Selection> {
-        let len = self.input_text.len();
+        let len = if let Some(ref field) = self.editing_field {
+            match field {
+                SettingsField::Model => self.current_settings.model.len(),
+                SettingsField::Endpoint => self.current_settings.endpoint.len(),
+                SettingsField::ApiKey => self.current_settings.api_key.len(),
+            }
+        } else {
+            self.input_text.len()
+        };
         Some(UTF16Selection {
             range: len..len,
             reversed: false,
@@ -305,11 +374,35 @@ impl EntityInputHandler for MainWindow {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.editing_field.is_some() {
+            // Editing a settings field
+            if text == "\r" || text == "\n" || text == "\r\n" {
+                // Enter confirms the field edit, clear focus back to chat
+                self.editing_field = None;
+                cx.notify();
+                return;
+            }
+            if text.is_empty() {
+                // Backspace
+                self.backspace_field(cx);
+            } else {
+                self.apply_to_field(text, cx);
+            }
+            return;
+        }
+
+        // Editing chat input
         if text == "\n" || text == "\r" || text == "\r\n" {
             self.submit(window, cx);
             return;
         }
-        self.input_text = (self.input_text.to_string() + text).into();
+        if text.is_empty() {
+            let mut s = self.input_text.to_string();
+            s.pop();
+            self.input_text = s.into();
+        } else {
+            self.input_text = (self.input_text.to_string() + text).into();
+        }
         cx.notify();
     }
 
@@ -321,7 +414,21 @@ impl EntityInputHandler for MainWindow {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        self.input_text = (self.input_text.to_string() + new_text).into();
+        if self.editing_field.is_some() {
+            if new_text.is_empty() {
+                self.backspace_field(cx);
+            } else {
+                self.apply_to_field(new_text, cx);
+            }
+            return;
+        }
+        if new_text.is_empty() {
+            let mut s = self.input_text.to_string();
+            s.pop();
+            self.input_text = s.into();
+        } else {
+            self.input_text = (self.input_text.to_string() + new_text).into();
+        }
         cx.notify();
     }
 
@@ -341,7 +448,16 @@ impl EntityInputHandler for MainWindow {
         _window: &mut Window,
         _cx: &mut Context<Self>,
     ) -> Option<usize> {
-        Some(self.input_text.len())
+        let len = if let Some(ref field) = self.editing_field {
+            match field {
+                SettingsField::Model => self.current_settings.model.len(),
+                SettingsField::Endpoint => self.current_settings.endpoint.len(),
+                SettingsField::ApiKey => self.current_settings.api_key.len(),
+            }
+        } else {
+            self.input_text.len()
+        };
+        Some(len)
     }
 
     fn accepts_text_input(&self, _window: &mut Window, _cx: &mut Context<Self>) -> bool {
