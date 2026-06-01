@@ -173,6 +173,23 @@ impl Render for MainWindow {
             .flex_row()
             .size_full()
             .bg(theme.background)
+            .on_key_down({
+                let entity = cx.entity();
+                move |event: &KeyDownEvent, _window, _cx: &mut App| {
+                    if event.keystroke.key == "backspace" || event.keystroke.key == "delete" {
+                        entity.update(_cx, |this: &mut MainWindow, cx| {
+                            if this.editing_field.is_some() {
+                                this.backspace_field(cx);
+                            } else if !this.input_text.is_empty() {
+                                let mut s = this.input_text.to_string();
+                                s.pop();
+                                this.input_text = s.into();
+                                cx.notify();
+                            }
+                        });
+                    }
+                }
+            })
             .child(
                 Sidebar::new()
                     .with_sessions(sessions)
@@ -316,6 +333,26 @@ impl Render for MainWindow {
 
 // ── Text input ──
 
+impl MainWindow {
+    /// Apply text edit to chat input, handling insert and delete via range.
+    fn apply_chat_edit(&mut self, range: Option<Range<usize>>, text: &str) {
+        let mut current = self.input_text.to_string();
+        match range {
+            Some(r) if !r.is_empty() => {
+                current.replace_range(r, text);
+            }
+            _ => {
+                if text.is_empty() {
+                    current.pop();
+                } else {
+                    current.push_str(text);
+                }
+            }
+        }
+        self.input_text = current.into();
+    }
+}
+
 impl EntityInputHandler for MainWindow {
     fn text_for_range(
         &mut self,
@@ -369,21 +406,18 @@ impl EntityInputHandler for MainWindow {
 
     fn replace_text_in_range(
         &mut self,
-        _range: Option<Range<usize>>,
+        range: Option<Range<usize>>,
         text: &str,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         if self.editing_field.is_some() {
-            // Editing a settings field
             if text == "\r" || text == "\n" || text == "\r\n" {
-                // Enter confirms the field edit, clear focus back to chat
                 self.editing_field = None;
                 cx.notify();
                 return;
             }
             if text.is_empty() {
-                // Backspace
                 self.backspace_field(cx);
             } else {
                 self.apply_to_field(text, cx);
@@ -396,19 +430,13 @@ impl EntityInputHandler for MainWindow {
             self.submit(window, cx);
             return;
         }
-        if text.is_empty() {
-            let mut s = self.input_text.to_string();
-            s.pop();
-            self.input_text = s.into();
-        } else {
-            self.input_text = (self.input_text.to_string() + text).into();
-        }
+        self.apply_chat_edit(range, text);
         cx.notify();
     }
 
     fn replace_and_mark_text_in_range(
         &mut self,
-        _range: Option<Range<usize>>,
+        range: Option<Range<usize>>,
         new_text: &str,
         _new_selected_range: Option<Range<usize>>,
         _window: &mut Window,
@@ -422,13 +450,7 @@ impl EntityInputHandler for MainWindow {
             }
             return;
         }
-        if new_text.is_empty() {
-            let mut s = self.input_text.to_string();
-            s.pop();
-            self.input_text = s.into();
-        } else {
-            self.input_text = (self.input_text.to_string() + new_text).into();
-        }
+        self.apply_chat_edit(range, new_text);
         cx.notify();
     }
 
