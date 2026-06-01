@@ -5,6 +5,7 @@ use gpui::prelude::*;
 use gpui::*;
 use gpui_platform::application;
 use z_claw_assets::Assets;
+use z_claw_ui::components::{Button, ButtonVariant};
 use z_claw_ui::views::settings::ProviderSettings;
 use z_claw_ui::views::sidebar::SessionSummary;
 use z_claw_ui::{AppModel, ApprovalDialog, ChatView, SettingsPanel, Sidebar, ThemeColors};
@@ -39,74 +40,6 @@ fn main() {
 
         cx.activate(true);
     });
-}
-
-// ── Custom element that registers an EntityInputHandler during paint ──
-
-struct InputElement {
-    view: Entity<MainWindow>,
-}
-
-impl IntoElement for InputElement {
-    type Element = Self;
-    fn into_element(self) -> Self::Element {
-        self
-    }
-}
-
-impl Element for InputElement {
-    type RequestLayoutState = ();
-    type PrepaintState = ();
-
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-
-    fn source_location(&self) -> Option<&'static std::panic::Location<'static>> {
-        None
-    }
-
-    fn request_layout(
-        &mut self,
-        _id: Option<&GlobalElementId>,
-        _inspector_id: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, Self::RequestLayoutState) {
-        let mut style = Style::default();
-        style.size.width = relative(1.).into();
-        style.size.height = window.line_height().into();
-        (window.request_layout(style, [], cx), ())
-    }
-
-    fn prepaint(
-        &mut self,
-        _id: Option<&GlobalElementId>,
-        _inspector_id: Option<&InspectorElementId>,
-        _bounds: Bounds<Pixels>,
-        _request_layout: &mut Self::RequestLayoutState,
-        _window: &mut Window,
-        _cx: &mut App,
-    ) -> Self::PrepaintState {
-    }
-
-    fn paint(
-        &mut self,
-        _id: Option<&GlobalElementId>,
-        _inspector_id: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _request_layout: &mut Self::RequestLayoutState,
-        _prepaint: &mut Self::PrepaintState,
-        window: &mut Window,
-        cx: &mut App,
-    ) {
-        let focus_handle = self.view.read(cx).focus_handle(cx);
-        window.handle_input(
-            &focus_handle,
-            ElementInputHandler::new(bounds, self.view.clone()),
-            cx,
-        );
-    }
 }
 
 // ── MainWindow ──
@@ -154,7 +87,7 @@ impl MainWindow {
         }
     }
 
-    fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn submit(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
         let text = std::mem::take(&mut self.input_text);
         if text.trim().is_empty() {
             return;
@@ -163,7 +96,6 @@ impl MainWindow {
             model.send_text(&text, cx);
         });
         cx.notify();
-        self.focus_handle.focus(window, cx);
     }
 }
 
@@ -171,7 +103,6 @@ impl Render for MainWindow {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.app_model.update(cx, |model, cx| model.poll_events(cx));
 
-        // Auto-focus so the InputElement receives keyboard events
         self.focus_handle.clone().focus(window, cx);
 
         let model = self.app_model.read(cx);
@@ -182,11 +113,9 @@ impl Render for MainWindow {
 
         let sessions = self.sessions.clone();
 
-        let input_text = self.input_text.clone();
-
         // Sync typed text for send handler
         self.app_model.update(cx, |model, _cx| {
-            model.input_text = input_text.to_string();
+            model.input_text = self.input_text.to_string();
         });
 
         let app_model = self.app_model.clone();
@@ -198,8 +127,10 @@ impl Render for MainWindow {
             });
 
         let app_model_new = self.app_model.clone();
-        let input_element = InputElement { view: cx.entity() };
         let show_settings = self.show_settings;
+        let has_text = !self.input_text.trim().is_empty();
+        let can_send = has_text && !streaming;
+        let cursor = "|";
 
         let mut root = div()
             .flex()
@@ -216,13 +147,73 @@ impl Render for MainWindow {
                         });
                     }),
             )
-            .child(ChatView {
-                messages,
-                streaming,
-                input_text: self.input_text.clone(),
-                on_send: Some(send_handler),
-            })
-            .child(input_element);
+            .child(
+                // Main content: chat + input
+                div()
+                    .flex_1()
+                    .flex()
+                    .flex_col()
+                    .bg(theme.background)
+                    .child(
+                        // Message area
+                        ChatView { messages },
+                    )
+                    .child(
+                        // Visible text input bar
+                        div()
+                            .flex()
+                            .flex_row()
+                            .items_center()
+                            .px(px(16.0))
+                            .py(px(10.0))
+                            .bg(theme.surface)
+                            .border_t_1()
+                            .border_color(theme.border)
+                            .child(
+                                // Text input display area
+                                div()
+                                    .flex_1()
+                                    .px(px(12.0))
+                                    .py(px(8.0))
+                                    .bg(theme.background)
+                                    .rounded_md()
+                                    .border_1()
+                                    .border_color(theme.border)
+                                    .text_sm()
+                                    .text_color(if self.input_text.is_empty() {
+                                        theme.text_subtle
+                                    } else {
+                                        theme.text
+                                    })
+                                    .child(if self.input_text.is_empty() {
+                                        SharedString::from("Type a message...")
+                                    } else {
+                                        format!("{}{}", &self.input_text, cursor).into()
+                                    }),
+                            )
+                            .child(
+                                div()
+                                    .ml(px(8.0))
+                                    .on_mouse_down(MouseButton::Left, {
+                                        let app_model = self.app_model.clone();
+                                        move |_, _, cx| {
+                                            app_model.update(cx, |model, cx| {
+                                                model.send_message(cx);
+                                            });
+                                        }
+                                    })
+                                    .child(
+                                        Button::new("Send")
+                                            .variant(if can_send {
+                                                ButtonVariant::Primary
+                                            } else {
+                                                ButtonVariant::Secondary
+                                            })
+                                            .disabled(!can_send),
+                                    ),
+                            ),
+                    ),
+            );
 
         if let Some(req) = pending_approval {
             let e1 = cx.entity();
@@ -306,11 +297,11 @@ impl EntityInputHandler for MainWindow {
         &mut self,
         _range: Option<Range<usize>>,
         text: &str,
-        _window: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         if text == "\n" || text == "\r" || text == "\r\n" {
-            self.submit(_window, cx);
+            self.submit(window, cx);
             return;
         }
         self.input_text = (self.input_text.to_string() + text).into();

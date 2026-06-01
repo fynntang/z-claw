@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use crate::components::{ChatInputBar, Label, LabelSize, MessageBubble};
+use crate::components::{Label, LabelSize, MessageBubble};
 use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
@@ -9,9 +7,6 @@ use gpui_macros::IntoElement;
 #[derive(IntoElement)]
 pub struct ChatView {
     pub messages: Vec<crate::app::MessageItem>,
-    pub streaming: bool,
-    pub input_text: SharedString,
-    pub on_send: Option<Arc<dyn Fn(&MouseDownEvent, &mut Window, &mut App) + Send + Sync>>,
 }
 
 impl RenderOnce for ChatView {
@@ -19,7 +14,7 @@ impl RenderOnce for ChatView {
         let theme = cx.global::<ThemeColors>();
         let has_messages = !self.messages.is_empty();
 
-        let message_area = if has_messages {
+        if has_messages {
             div().flex_1().p(px(16.0)).children(
                 self.messages
                     .into_iter()
@@ -44,26 +39,6 @@ impl RenderOnce for ChatView {
                             .size(LabelSize::Sm),
                     ),
                 )
-        };
-
-        div()
-            .flex_1()
-            .flex()
-            .flex_col()
-            .bg(theme.background)
-            .child(message_area)
-            .child(
-                ChatInputBar::new()
-                    .with_text(self.input_text)
-                    .with_disabled(self.streaming)
-                    .on_send({
-                        let handler = self.on_send.clone();
-                        move |event, window, cx| {
-                            if let Some(ref h) = handler {
-                                h(event, window, cx);
-                            }
-                        }
-                    }),
-            )
+        }
     }
 }

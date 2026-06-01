@@ -1,5 +1,5 @@
 mod app;
-mod components;
+pub mod components;
 pub mod theme;
 pub mod views;
 
