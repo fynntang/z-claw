@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::components::{Button, ButtonVariant, Label, LabelSize};
 use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
@@ -68,26 +69,21 @@ impl RenderOnce for ApprovalDialog {
                     .p(px(20.0))
                     .child(
                         div().flex().flex_row().items_center().mb(px(12.0)).child(
-                            div()
-                                .text_lg()
-                                .font_weight(FontWeight::BOLD)
-                                .text_color(theme.warning)
-                                .child("Tool Approval Required"),
+                            Label::new("Tool Approval Required")
+                                .color(theme.warning)
+                                .size(LabelSize::Lg),
                         ),
                     )
                     .child(
                         div()
                             .mb(px(10.0))
-                            .text_sm()
-                            .text_color(theme.text)
-                            .child(format!("Tool: {}", req.tool_name)),
+                            .child(Label::new(format!("Tool: {}", req.tool_name))),
                     )
                     .child(
-                        div()
-                            .mb(px(10.0))
-                            .text_sm()
-                            .text_color(theme.text_muted)
-                            .child(format!("Level: {}", req.security_level)),
+                        div().mb(px(10.0)).child(
+                            Label::new(format!("Level: {}", req.security_level))
+                                .color(theme.text_muted),
+                        ),
                     )
                     .child(
                         div()
@@ -96,9 +92,11 @@ impl RenderOnce for ApprovalDialog {
                             .py(px(8.0))
                             .bg(theme.sidebar_bg)
                             .rounded_md()
-                            .text_xs()
-                            .text_color(theme.text_subtle)
-                            .child(format!("Arguments: {}", req.arguments)),
+                            .child(
+                                Label::new(format!("Arguments: {}", req.arguments))
+                                    .color(theme.text_subtle)
+                                    .size(LabelSize::Xs),
+                            ),
                     )
                     .child(
                         div()
@@ -108,14 +106,6 @@ impl RenderOnce for ApprovalDialog {
                             .gap(px(8.0))
                             .child(
                                 div()
-                                    .px(px(14.0))
-                                    .py(px(6.0))
-                                    .bg(theme.surface)
-                                    .rounded_md()
-                                    .text_color(theme.text)
-                                    .text_sm()
-                                    .cursor_pointer()
-                                    .child("Deny")
                                     .on_mouse_down(MouseButton::Left, {
                                         let h = self.on_deny.clone();
                                         move |e, _, cx| {
@@ -123,19 +113,11 @@ impl RenderOnce for ApprovalDialog {
                                                 h(e, cx);
                                             }
                                         }
-                                    }),
+                                    })
+                                    .child(Button::new("Deny").variant(ButtonVariant::Secondary)),
                             )
                             .child(
                                 div()
-                                    .px(px(14.0))
-                                    .py(px(6.0))
-                                    .bg(theme.accent)
-                                    .rounded_md()
-                                    .text_color(theme.background)
-                                    .text_sm()
-                                    .font_weight(FontWeight::MEDIUM)
-                                    .cursor_pointer()
-                                    .child("Approve")
                                     .on_mouse_down(MouseButton::Left, {
                                         let h = self.on_approve.clone();
                                         move |e, _, cx| {
@@ -143,7 +125,8 @@ impl RenderOnce for ApprovalDialog {
                                                 h(e, cx);
                                             }
                                         }
-                                    }),
+                                    })
+                                    .child(Button::new("Approve").variant(ButtonVariant::Primary)),
                             ),
                     ),
             )

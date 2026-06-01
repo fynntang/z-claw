@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::components::{Button, ButtonVariant, Label, LabelSize};
 use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
@@ -81,13 +82,7 @@ impl RenderOnce for SettingsPanel {
                             .items_center()
                             .justify_between()
                             .mb(px(16.0))
-                            .child(
-                                div()
-                                    .text_lg()
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_color(theme.text)
-                                    .child("Settings"),
-                            )
+                            .child(Label::new("Settings").color(theme.text).size(LabelSize::Lg))
                             .child(
                                 div()
                                     .text_color(theme.text_muted)
@@ -104,40 +99,34 @@ impl RenderOnce for SettingsPanel {
                             ),
                     )
                     .child(
-                        div()
-                            .mb(px(16.0))
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(theme.text_subtle)
-                                    .mb(px(6.0))
-                                    .child("Provider"),
-                            )
-                            .child(
-                                div().flex().flex_col().gap_2().children(
-                                    ["ollama", "openai", "deepseek", "anthropic"].iter().map(
-                                        |&p| {
-                                            let active = self.settings.provider_type == p;
-                                            div()
-                                                .px(px(12.0))
-                                                .py(px(8.0))
-                                                .rounded_md()
-                                                .bg(if active {
-                                                    theme.accent
-                                                } else {
-                                                    theme.surface
-                                                })
-                                                .text_color(if active {
-                                                    theme.background
-                                                } else {
-                                                    theme.text
-                                                })
-                                                .cursor_pointer()
-                                                .child(p)
-                                        },
-                                    ),
-                                ),
+                        div().mb(px(16.0)).child(
+                            div().mb(px(6.0)).child(
+                                Label::new("Provider")
+                                    .color(theme.text_subtle)
+                                    .size(LabelSize::Xs),
                             ),
+                        ),
+                    )
+                    .child(
+                        div().flex().flex_col().gap_2().children(
+                            ["ollama", "openai", "deepseek", "anthropic"]
+                                .iter()
+                                .map(|&p| {
+                                    let active = self.settings.provider_type == p;
+                                    div()
+                                        .px(px(12.0))
+                                        .py(px(8.0))
+                                        .rounded_md()
+                                        .bg(if active { theme.accent } else { theme.surface })
+                                        .text_color(if active {
+                                            theme.background
+                                        } else {
+                                            theme.text
+                                        })
+                                        .cursor_pointer()
+                                        .child(p)
+                                }),
+                        ),
                     )
                     .child(
                         div()
@@ -155,15 +144,6 @@ impl RenderOnce for SettingsPanel {
                     .child(
                         div().mt(px(16.0)).flex().flex_row().justify_end().child(
                             div()
-                                .px(px(16.0))
-                                .py(px(6.0))
-                                .bg(theme.accent)
-                                .rounded_md()
-                                .text_color(theme.background)
-                                .text_sm()
-                                .font_weight(FontWeight::MEDIUM)
-                                .cursor_pointer()
-                                .child("Save & Apply")
                                 .on_mouse_down(MouseButton::Left, {
                                     let s = self.settings.clone();
                                     let h = self.on_save.clone();
@@ -172,7 +152,8 @@ impl RenderOnce for SettingsPanel {
                                             h(s.clone(), cx);
                                         }
                                     }
-                                }),
+                                })
+                                .child(Button::new("Save & Apply").variant(ButtonVariant::Primary)),
                         ),
                     ),
             )
@@ -186,7 +167,13 @@ fn info_row(label: &str, value: &str, theme: &ThemeColors) -> impl IntoElement {
     div()
         .flex()
         .flex_col()
-        .child(div().text_xs().text_color(theme.text_subtle).child(label))
+        .child(
+            div().child(
+                Label::new(label)
+                    .color(theme.text_subtle)
+                    .size(LabelSize::Xs),
+            ),
+        )
         .child(
             div()
                 .mt(px(2.0))
@@ -194,9 +181,7 @@ fn info_row(label: &str, value: &str, theme: &ThemeColors) -> impl IntoElement {
                 .py(px(4.0))
                 .bg(theme.surface)
                 .rounded_md()
-                .text_sm()
-                .text_color(theme.text)
-                .child(value),
+                .child(Label::new(value).color(theme.text)),
         )
 }
 
