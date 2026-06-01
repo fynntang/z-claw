@@ -15,7 +15,9 @@ impl RenderOnce for ChatView {
         let has_messages = !self.messages.is_empty();
 
         if has_messages {
-            div().flex_1().p(px(16.0)).children(
+            let mut area = div().flex_1().p(px(16.0));
+            area.style().overflow.y = Some(Overflow::Scroll);
+            area.children(
                 self.messages
                     .into_iter()
                     .map(|msg| div().child(MessageBubble { message: msg })),
