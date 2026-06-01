@@ -95,6 +95,29 @@ impl MainWindow {
         }
     }
 
+    fn refresh_sessions(&mut self, cx: &mut Context<Self>) {
+        let memory = self.app_model.read(cx).memory.clone();
+        cx.spawn(
+            async move |this: WeakEntity<MainWindow>, cx: &mut AsyncApp| {
+                if let Ok(list) = memory.list_sessions().await {
+                    let sessions = list
+                        .into_iter()
+                        .map(|(id, title, updated_ms)| SessionSummary {
+                            id,
+                            title,
+                            updated_ms,
+                        })
+                        .collect::<Vec<_>>();
+                    _ = this.update(cx, |this, cx| {
+                        this.sessions = sessions;
+                        cx.notify();
+                    });
+                }
+            },
+        )
+        .detach();
+    }
+
     fn submit(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
         let text = std::mem::take(&mut self.input_text);
         if text.trim().is_empty() {
@@ -200,10 +223,14 @@ impl Render for MainWindow {
                     .with_active_session(Some(current_session_id))
                     .on_new_session({
                         let app_model = self.app_model.clone();
+                        let entity = cx.entity();
                         move |_, _, cx| {
                             app_model.update(cx, |model, cx| {
                                 model.new_session();
                                 cx.notify();
+                            });
+                            entity.update(cx, |this: &mut MainWindow, cx| {
+                                this.refresh_sessions(cx);
                             });
                         }
                     })
