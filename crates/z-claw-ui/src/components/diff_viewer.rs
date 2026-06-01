@@ -1,3 +1,4 @@
+use crate::components::{Label, LabelSize};
 use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
@@ -30,19 +31,16 @@ impl RenderOnce for DiffViewer {
             .border_color(theme.border)
             .mb_2()
             .child(
-                div()
-                    .px(px(12.0))
-                    .py(px(6.0))
-                    .bg(theme.surface)
-                    .text_xs()
-                    .text_color(theme.text_muted)
-                    .child(format!("File: {}", self.file_path)),
+                div().px(px(12.0)).py(px(6.0)).bg(theme.surface).child(
+                    Label::new(format!("File: {}", self.file_path))
+                        .color(theme.text_muted)
+                        .size(LabelSize::Xs),
+                ),
             )
             .child(
                 div()
                     .px(px(8.0))
                     .py(px(4.0))
-                    .text_xs()
                     .children(self.diff_lines.iter().map(|line| {
                         let (color, prefix) = if line.starts_with('+') {
                             (theme.success, "+")
@@ -51,10 +49,11 @@ impl RenderOnce for DiffViewer {
                         } else {
                             (theme.text_muted, " ")
                         };
-                        div()
-                            .py(px(1.0))
-                            .text_color(color)
-                            .child(format!("{prefix} {line}"))
+                        div().py(px(1.0)).child(
+                            Label::new(format!("{prefix} {line}"))
+                                .color(color)
+                                .size(LabelSize::Xs),
+                        )
                     })),
             )
     }
