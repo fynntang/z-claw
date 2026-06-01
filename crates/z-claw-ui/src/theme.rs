@@ -1,4 +1,4 @@
-use gpui::{Global, Rgba, rgb};
+use gpui::{App, Global, Rgba, rgb};
 
 /// Catppuccin Mocha semantic color palette.
 #[derive(Debug, Clone, Copy)]
@@ -59,3 +59,8 @@ impl ThemeColors {
 }
 
 impl Global for ThemeColors {}
+
+/// Convenience accessor for the current theme colors.
+pub fn theme_colors(cx: &App) -> ThemeColors {
+    *cx.global::<ThemeColors>()
+}

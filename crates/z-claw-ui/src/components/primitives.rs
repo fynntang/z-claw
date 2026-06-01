@@ -2,11 +2,11 @@ use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
 use gpui_macros::IntoElement;
-use std::sync::Arc;
+use std::rc::Rc;
 
 // ── Button ──
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum ButtonVariant {
     Primary,
     Secondary,
@@ -17,7 +17,8 @@ pub enum ButtonVariant {
 pub struct Button {
     label: SharedString,
     variant: ButtonVariant,
-    on_click: Option<Arc<dyn Fn(&MouseDownEvent, &mut Window, &mut App) + Send + Sync>>,
+    on_click: Option<Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>>,
+    disabled: bool,
 }
 
 impl Button {
@@ -26,17 +27,25 @@ impl Button {
             label: label.into(),
             variant: ButtonVariant::Primary,
             on_click: None,
+            disabled: false,
         }
     }
+
     pub fn variant(mut self, v: ButtonVariant) -> Self {
         self.variant = v;
         self
     }
+
     pub fn on_click(
         mut self,
-        h: impl Fn(&MouseDownEvent, &mut Window, &mut App) + Send + Sync + 'static,
+        handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
     ) -> Self {
-        self.on_click = Some(Arc::new(h));
+        self.on_click = Some(Rc::new(handler));
+        self
+    }
+
+    pub fn disabled(mut self, d: bool) -> Self {
+        self.disabled = d;
         self
     }
 }
@@ -44,40 +53,39 @@ impl Button {
 impl RenderOnce for Button {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<ThemeColors>();
-        let bg = match self.variant {
-            ButtonVariant::Primary => theme.accent,
-            ButtonVariant::Secondary => theme.surface,
-            ButtonVariant::Danger => theme.error,
+
+        let (bg, text) = match self.variant {
+            ButtonVariant::Primary => (theme.accent, theme.background),
+            ButtonVariant::Secondary => (theme.surface, theme.text),
+            ButtonVariant::Danger => (theme.error, theme.background),
         };
+
+        let (bg, text) = if self.disabled {
+            (theme.text_subtle, theme.text_muted)
+        } else {
+            (bg, text)
+        };
+
+        let interactive = !self.disabled && self.on_click.is_some();
+
         div()
+            .id(ElementId::Name(self.label.clone().into()))
             .px(px(14.0))
             .py(px(6.0))
             .bg(bg)
             .rounded_md()
-            .text_color(theme.background)
+            .text_color(text)
             .text_sm()
             .font_weight(FontWeight::MEDIUM)
-            .cursor_pointer()
-            .child(self.label)
-            .on_mouse_down(MouseButton::Left, {
-                let h = self.on_click.clone();
-                move |e, w, cx| {
-                    if let Some(ref h) = h {
-                        h(e, w, cx);
-                    }
-                }
+            .when(interactive, |el| el.cursor_pointer())
+            .child(self.label.clone())
+            .when_some(self.on_click.filter(|_| !self.disabled), |el, h| {
+                el.on_click(move |e, w, cx| h(e, w, cx))
             })
     }
 }
 
 // ── Label ──
-
-#[derive(IntoElement)]
-pub struct Label {
-    text: SharedString,
-    color: Option<Rgba>,
-    size: LabelSize,
-}
 
 #[derive(Clone, Copy)]
 pub enum LabelSize {
@@ -87,20 +95,36 @@ pub enum LabelSize {
     Lg,
 }
 
+#[derive(IntoElement)]
+pub struct Label {
+    text: SharedString,
+    color: Option<Rgba>,
+    size: LabelSize,
+    weight: Option<FontWeight>,
+}
+
 impl Label {
     pub fn new(text: impl Into<SharedString>) -> Self {
         Self {
             text: text.into(),
             color: None,
             size: LabelSize::Default,
+            weight: None,
         }
     }
+
     pub fn color(mut self, c: Rgba) -> Self {
         self.color = Some(c);
         self
     }
+
     pub fn size(mut self, s: LabelSize) -> Self {
         self.size = s;
+        self
+    }
+
+    pub fn weight(mut self, w: FontWeight) -> Self {
+        self.weight = Some(w);
         self
     }
 }
@@ -108,32 +132,25 @@ impl Label {
 impl RenderOnce for Label {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<ThemeColors>();
+
         let mut el = div()
             .text_color(self.color.unwrap_or(theme.text))
-            .child(self.text);
-        match self.size {
-            LabelSize::Xs => {
-                el = el.text_xs();
-            }
-            LabelSize::Sm => {
-                el = el.text_sm();
-            }
-            LabelSize::Default => {}
-            LabelSize::Lg => {
-                el = el.text_lg();
-            }
+            .child(self.text.clone());
+
+        if let Some(w) = self.weight {
+            el = el.font_weight(w);
         }
-        el
+
+        match self.size {
+            LabelSize::Xs => el.text_xs(),
+            LabelSize::Sm => el.text_sm(),
+            LabelSize::Default => el,
+            LabelSize::Lg => el.text_lg(),
+        }
     }
 }
 
 // ── TabBar ──
-
-#[derive(IntoElement)]
-pub struct TabBar {
-    tabs: Vec<TabItem>,
-    active: usize,
-}
 
 #[derive(Clone)]
 pub struct TabItem {
@@ -141,35 +158,60 @@ pub struct TabItem {
     pub label: SharedString,
 }
 
+#[derive(IntoElement)]
+pub struct TabBar {
+    tabs: Vec<TabItem>,
+    active: usize,
+    on_click: Option<Rc<dyn Fn(&usize, &mut Window, &mut App)>>,
+}
+
 impl TabBar {
     pub fn new(tabs: Vec<TabItem>, active: usize) -> Self {
-        Self { tabs, active }
+        Self {
+            tabs,
+            active,
+            on_click: None,
+        }
+    }
+
+    pub fn on_click(mut self, handler: impl Fn(&usize, &mut Window, &mut App) + 'static) -> Self {
+        self.on_click = Some(Rc::new(handler));
+        self
     }
 }
 
 impl RenderOnce for TabBar {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<ThemeColors>();
+        let on_click = self.on_click;
+        let active = self.active;
         div()
             .flex()
             .flex_row()
             .bg(theme.sidebar_bg)
             .rounded_t_md()
-            .children(self.tabs.iter().enumerate().map(|(i, t)| {
-                let active = i == self.active;
+            .children(self.tabs.iter().enumerate().map(move |(i, t)| {
+                let is_active = i == active;
+                let h = on_click.clone();
                 div()
+                    .id(ElementId::Name(t.id.clone().into()))
                     .px(px(14.0))
                     .py(px(6.0))
                     .text_sm()
-                    .bg(if active {
+                    .bg(if is_active {
                         theme.background
                     } else {
                         theme.sidebar_bg
                     })
-                    .text_color(if active { theme.text } else { theme.text_muted })
+                    .text_color(if is_active {
+                        theme.text
+                    } else {
+                        theme.text_muted
+                    })
                     .rounded_t_md()
                     .cursor_pointer()
                     .child(t.label.clone())
+                    .when_some(h, |el, h| el.on_click(move |_, w, cx| h(&i, w, cx)))
             }))
     }
 }

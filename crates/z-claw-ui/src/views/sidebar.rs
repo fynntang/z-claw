@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::components::{Button, ButtonVariant, Label, LabelSize};
 use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
@@ -63,11 +64,9 @@ impl RenderOnce for Sidebar {
                     .pt(px(14.0))
                     .pb(px(10.0))
                     .child(
-                        div()
-                            .text_lg()
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(theme.text)
-                            .child("z-claw"),
+                        Label::new("z-claw")
+                            .color(theme.text.into())
+                            .size(LabelSize::Lg),
                     ),
             )
             .child(
@@ -75,15 +74,6 @@ impl RenderOnce for Sidebar {
                 div()
                     .mx(px(10.0))
                     .mb(px(10.0))
-                    .px(px(12.0))
-                    .py(px(6.0))
-                    .bg(theme.accent)
-                    .rounded_md()
-                    .text_color(theme.background)
-                    .text_sm()
-                    .font_weight(FontWeight::MEDIUM)
-                    .cursor_pointer()
-                    .child("+ New Session")
                     .on_mouse_down(MouseButton::Left, {
                         let handler = self.on_new_session.clone();
                         move |event, window, cx| {
@@ -91,7 +81,8 @@ impl RenderOnce for Sidebar {
                                 h(event, window, cx);
                             }
                         }
-                    }),
+                    })
+                    .child(Button::new("+ New Session").variant(ButtonVariant::Primary)),
             )
             .child(
                 // Session list

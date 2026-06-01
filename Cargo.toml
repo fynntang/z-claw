@@ -101,8 +101,10 @@ gpui_macros = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
 gpui_platform = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
 ui = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
 ui_input = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
-
+panel = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
+title_bar = { git = "https://github.com/zed-industries/zed", tag = "v1.4.4" }
 # Asset bundling
 anyhow = "1"
 rust-embed = "8"
 strum = { version = "0.26", features = ["derive"] }
+

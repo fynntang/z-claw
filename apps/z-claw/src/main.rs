@@ -179,7 +179,6 @@ impl Render for MainWindow {
         let messages = model.messages.clone();
         let streaming = model.streaming;
         let pending_approval = model.pending_approval.clone();
-        drop(model);
 
         let sessions = self.sessions.clone();
 

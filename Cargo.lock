@@ -3013,9 +3013,9 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "kqueue"
-version = "1.1.1"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eac30106d7dce88daf4a3fcb4879ea939476d5074a9b7ddd0fb97fa4bed5596a"
+checksum = "273c0752728918e0ac4976f2b275b6fefb9ecd400585dec929419f3844cd87b5"
 dependencies = [
  "kqueue-sys",
  "libc",
@@ -7300,6 +7300,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "winresource"
+version = "0.1.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0986a8b1d586b7d3e4fe3d9ea39fb451ae22869dcea4aa109d287a374d866087"
+dependencies = [
+ "toml 1.1.2+spec-1.1.0",
+ "version_check",
+]
+
+[[package]]
 name = "winsafe"
 version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7515,6 +7525,8 @@ dependencies = [
  "tracing-subscriber",
  "ui",
  "ui_input",
+ "windows 0.62.2",
+ "winresource",
  "z-claw-agent",
  "z-claw-assets",
  "z-claw-config",
@@ -7692,6 +7704,8 @@ dependencies = [
  "gpui_macros",
  "tokio",
  "tracing",
+ "ui",
+ "ui_input",
  "uuid",
  "z-claw-agent",
  "z-claw-core",

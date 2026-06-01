@@ -1,3 +1,4 @@
+use crate::components::primitives::{Button, ButtonVariant};
 use crate::theme::ThemeColors;
 use gpui::prelude::*;
 use gpui::*;
@@ -46,10 +47,11 @@ impl RenderOnce for ChatInputBar {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<ThemeColors>();
         let has_text = !self.text.trim().is_empty();
+        let can_send = has_text && !self.disabled;
         let display = if self.text.is_empty() {
-            self.placeholder
+            self.placeholder.clone()
         } else {
-            self.text
+            self.text.clone()
         };
 
         div()
@@ -79,28 +81,22 @@ impl RenderOnce for ChatInputBar {
             .child(
                 div()
                     .ml(px(8.0))
-                    .px(px(16.0))
-                    .py(px(6.0))
-                    .bg(if has_text && !self.disabled {
-                        theme.accent
-                    } else {
-                        theme.text_subtle
-                    })
-                    .rounded_md()
-                    .text_color(if has_text && !self.disabled {
-                        theme.background
-                    } else {
-                        theme.text_muted
-                    })
-                    .text_sm()
-                    .font_weight(FontWeight::MEDIUM)
-                    .cursor_pointer()
-                    .child("Send")
                     .on_mouse_down(MouseButton::Left, move |event, window, cx| {
-                        if let Some(ref handler) = self.on_send {
-                            handler(event, window, cx);
+                        if can_send {
+                            if let Some(ref handler) = self.on_send {
+                                handler(event, window, cx);
+                            }
                         }
-                    }),
+                    })
+                    .child(
+                        Button::new("Send")
+                            .variant(if can_send {
+                                ButtonVariant::Primary
+                            } else {
+                                ButtonVariant::Secondary
+                            })
+                            .disabled(!can_send),
+                    ),
             )
     }
 }
