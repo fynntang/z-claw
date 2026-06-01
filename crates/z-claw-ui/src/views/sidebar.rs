@@ -16,6 +16,7 @@ pub struct SessionSummary {
 #[derive(IntoElement)]
 pub struct Sidebar {
     pub sessions: Vec<SessionSummary>,
+    pub active_session_id: Option<String>,
     pub on_new_session: Option<Arc<dyn Fn(&MouseDownEvent, &mut Window, &mut App) + Send + Sync>>,
     pub on_select_session: Option<Arc<dyn Fn(String, &mut Window, &mut App) + Send + Sync>>,
 }
@@ -24,6 +25,7 @@ impl Sidebar {
     pub fn new() -> Self {
         Self {
             sessions: Vec::new(),
+            active_session_id: None,
             on_new_session: None,
             on_select_session: None,
         }
@@ -31,6 +33,11 @@ impl Sidebar {
 
     pub fn with_sessions(mut self, sessions: Vec<SessionSummary>) -> Self {
         self.sessions = sessions;
+        self
+    }
+
+    pub fn with_active_session(mut self, id: Option<String>) -> Self {
+        self.active_session_id = id;
         self
     }
 
@@ -99,13 +106,19 @@ impl RenderOnce for Sidebar {
                 div().flex_1().children(self.sessions.iter().map(|s| {
                     let session_id = s.id.clone();
                     let h = self.on_select_session.clone();
+                    let is_active = self.active_session_id.as_ref() == Some(&s.id);
                     div()
                         .px(px(12.0))
                         .py(px(8.0))
                         .mx(px(8.0))
                         .mb(px(2.0))
                         .rounded_md()
-                        .text_color(theme.text_muted)
+                        .when(is_active, |el| el.bg(theme.surface))
+                        .text_color(if is_active {
+                            theme.text
+                        } else {
+                            theme.text_muted
+                        })
                         .text_sm()
                         .cursor_pointer()
                         .hover(|el| el.bg(theme.surface))

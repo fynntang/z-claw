@@ -149,11 +149,16 @@ impl Render for MainWindow {
 
         self.focus_handle.clone().focus(window, cx);
 
-        let model = self.app_model.read(cx);
+        let (messages, streaming, pending_approval, current_session_id) = {
+            let model = self.app_model.read(cx);
+            (
+                model.messages.clone(),
+                model.streaming,
+                model.pending_approval.clone(),
+                model.session_id.clone(),
+            )
+        };
         let theme = *cx.global::<ThemeColors>();
-        let messages = model.messages.clone();
-        let streaming = model.streaming;
-        let pending_approval = model.pending_approval.clone();
 
         let sessions = self.sessions.clone();
 
@@ -192,6 +197,7 @@ impl Render for MainWindow {
             .child(
                 Sidebar::new()
                     .with_sessions(sessions)
+                    .with_active_session(Some(current_session_id))
                     .on_new_session({
                         let app_model = self.app_model.clone();
                         move |_, _, cx| {
