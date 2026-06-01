@@ -177,6 +177,7 @@ impl RenderOnce for SettingsPanel {
                                 "Model",
                                 &self.settings.model,
                                 SettingsField::Model,
+                                false,
                                 &self.editing_field,
                                 &self.on_field_click,
                                 theme,
@@ -185,14 +186,16 @@ impl RenderOnce for SettingsPanel {
                                 "Endpoint",
                                 &self.settings.endpoint,
                                 SettingsField::Endpoint,
+                                false,
                                 &self.editing_field,
                                 &self.on_field_click,
                                 theme,
                             ))
                             .child(editable_row(
                                 "API Key",
-                                &mask_key(&self.settings.api_key),
+                                &self.settings.api_key,
                                 SettingsField::ApiKey,
+                                true,
                                 &self.editing_field,
                                 &self.on_field_click,
                                 theme,
@@ -221,18 +224,26 @@ fn editable_row(
     label: &str,
     value: &str,
     field: SettingsField,
+    is_secret: bool,
     active_field: &Option<SettingsField>,
     on_click: &Option<Arc<dyn Fn(SettingsField, &mut App) + Send + Sync>>,
     theme: &ThemeColors,
 ) -> impl IntoElement {
     let label = label.to_string();
-    let value = value.to_string();
     let theme = *theme;
     let is_active = active_field.as_ref() == Some(&field);
     let border_color = if is_active {
         theme.accent
     } else {
         theme.border
+    };
+
+    let display_value = if is_active {
+        format!("{value} |")
+    } else if is_secret {
+        mask_key(value)
+    } else {
+        value.to_string()
     };
 
     div()
@@ -255,14 +266,7 @@ fn editable_row(
                 .border_1()
                 .border_color(border_color)
                 .cursor_pointer()
-                .child(
-                    Label::new(if is_active {
-                        format!("{value} |")
-                    } else {
-                        value
-                    })
-                    .color(theme.text),
-                )
+                .child(Label::new(display_value).color(theme.text))
                 .on_mouse_down(MouseButton::Left, {
                     let h = on_click.clone();
                     let field = field.clone();
