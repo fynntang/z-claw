@@ -147,10 +147,19 @@ impl AppModel {
 
     /// Start a fresh session with a new agent loop.
     pub fn new_session(&mut self) {
+        let session_id = uuid::Uuid::new_v4().to_string();
+        self.switch_to_session(session_id);
+    }
+
+    /// Switch to an existing session by ID.
+    pub fn switch_session(&mut self, session_id: String) {
+        self.switch_to_session(session_id);
+    }
+
+    fn switch_to_session(&mut self, session_id: String) {
         self.messages.clear();
         self.streaming = false;
         self.input_text.clear();
-        let session_id = uuid::Uuid::new_v4().to_string();
         self.session_id = session_id.clone();
         let harness = Arc::new(Harness {
             providers: ProviderChain::from_single(Arc::new(OpenAiProvider::new(

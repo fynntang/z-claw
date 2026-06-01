@@ -162,7 +162,6 @@ impl Render for MainWindow {
             model.input_text = self.input_text.to_string();
         });
 
-        let app_model_new = self.app_model.clone();
         let show_settings = self.show_settings;
         let has_text = !self.input_text.trim().is_empty();
         let can_send = has_text && !streaming;
@@ -193,11 +192,23 @@ impl Render for MainWindow {
             .child(
                 Sidebar::new()
                     .with_sessions(sessions)
-                    .on_new_session(move |_, _, cx| {
-                        app_model_new.update(cx, |model, cx| {
-                            model.new_session();
-                            cx.notify();
-                        });
+                    .on_new_session({
+                        let app_model = self.app_model.clone();
+                        move |_, _, cx| {
+                            app_model.update(cx, |model, cx| {
+                                model.new_session();
+                                cx.notify();
+                            });
+                        }
+                    })
+                    .on_select_session({
+                        let app_model = self.app_model.clone();
+                        move |session_id, _, cx| {
+                            app_model.update(cx, |model, cx| {
+                                model.switch_session(session_id);
+                                cx.notify();
+                            });
+                        }
                     }),
             )
             .child(
