@@ -84,7 +84,7 @@ impl RenderOnce for SettingsPanel {
         div()
             .absolute()
             .size_full()
-            .bg(rgba(0x000000aa))
+            .bg(rgba(0x000000bb))
             .flex()
             .items_center()
             .justify_center()
@@ -98,12 +98,12 @@ impl RenderOnce for SettingsPanel {
             })
             .child(
                 div()
-                    .w(px(420.0))
-                    .bg(theme.background)
-                    .rounded_lg()
+                    .w(px(460.0))
+                    .bg(theme.surface)
+                    .rounded_md()
                     .border_1()
                     .border_color(theme.border)
-                    .p(px(20.0))
+                    .p(px(18.0))
                     .on_mouse_down(MouseButton::Left, |_, _, _| {})
                     .child(
                         div()
@@ -111,13 +111,32 @@ impl RenderOnce for SettingsPanel {
                             .flex_row()
                             .items_center()
                             .justify_between()
-                            .mb(px(16.0))
-                            .child(Label::new("Settings").color(theme.text).size(LabelSize::Lg))
+                            .mb(px(18.0))
                             .child(
                                 div()
+                                    .flex()
+                                    .flex_col()
+                                    .child(
+                                        Label::new("Settings")
+                                            .color(theme.text)
+                                            .size(LabelSize::Lg)
+                                            .weight(FontWeight::SEMIBOLD),
+                                    )
+                                    .child(
+                                        Label::new("Provider and model")
+                                            .color(theme.text_subtle)
+                                            .size(LabelSize::Xs),
+                                    ),
+                            )
+                            .child(
+                                div()
+                                    .px(px(8.0))
+                                    .py(px(4.0))
+                                    .rounded_md()
+                                    .bg(theme.overlay)
                                     .text_color(theme.text_muted)
                                     .cursor_pointer()
-                                    .child("X")
+                                    .child("Close")
                                     .on_mouse_down(MouseButton::Left, {
                                         let h = self.on_close.clone();
                                         move |event, _, cx| {
@@ -129,7 +148,7 @@ impl RenderOnce for SettingsPanel {
                             ),
                     )
                     .child(
-                        div().mb(px(16.0)).child(
+                        div().mb(px(8.0)).child(
                             div().mb(px(6.0)).child(
                                 Label::new("Provider")
                                     .color(theme.text_subtle)
@@ -148,11 +167,21 @@ impl RenderOnce for SettingsPanel {
                                         .px(px(12.0))
                                         .py(px(8.0))
                                         .rounded_md()
-                                        .bg(if active { theme.accent } else { theme.surface })
-                                        .text_color(if active {
-                                            theme.background
+                                        .border_1()
+                                        .border_color(if active {
+                                            theme.accent
                                         } else {
+                                            theme.border
+                                        })
+                                        .bg(if active {
+                                            theme.overlay
+                                        } else {
+                                            theme.input_bg
+                                        })
+                                        .text_color(if active {
                                             theme.text
+                                        } else {
+                                            theme.text_muted
                                         })
                                         .cursor_pointer()
                                         .child(p)
@@ -173,6 +202,7 @@ impl RenderOnce for SettingsPanel {
                             .flex()
                             .flex_col()
                             .gap(px(10.0))
+                            .mt(px(16.0))
                             .child(editable_row(
                                 "Model",
                                 &self.settings.model,
@@ -202,7 +232,7 @@ impl RenderOnce for SettingsPanel {
                             )),
                     )
                     .child(
-                        div().mt(px(16.0)).flex().flex_row().justify_end().child(
+                        div().mt(px(18.0)).flex().flex_row().justify_end().child(
                             div()
                                 .on_mouse_down(MouseButton::Left, {
                                     let s = self.settings.clone();
@@ -259,14 +289,18 @@ fn editable_row(
         .child(
             div()
                 .mt(px(2.0))
-                .px(px(8.0))
-                .py(px(4.0))
-                .bg(theme.background)
+                .px(px(10.0))
+                .py(px(8.0))
+                .bg(theme.input_bg)
                 .rounded_md()
                 .border_1()
                 .border_color(border_color)
                 .cursor_pointer()
-                .child(Label::new(display_value).color(theme.text))
+                .child(
+                    Label::new(display_value)
+                        .color(theme.text)
+                        .size(LabelSize::Sm),
+                )
                 .on_mouse_down(MouseButton::Left, {
                     let h = on_click.clone();
                     let field = field.clone();

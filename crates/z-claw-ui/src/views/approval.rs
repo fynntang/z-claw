@@ -55,23 +55,24 @@ impl RenderOnce for ApprovalDialog {
         div()
             .absolute()
             .size_full()
-            .bg(rgba(0x000000aa))
+            .bg(rgba(0x000000bb))
             .flex()
             .items_center()
             .justify_center()
             .child(
                 div()
-                    .w(px(400.0))
-                    .bg(theme.background)
-                    .rounded_lg()
+                    .w(px(440.0))
+                    .bg(theme.surface)
+                    .rounded_md()
                     .border_1()
                     .border_color(theme.warning)
-                    .p(px(20.0))
+                    .p(px(18.0))
                     .child(
                         div().flex().flex_row().items_center().mb(px(12.0)).child(
                             Label::new("Tool Approval Required")
                                 .color(theme.warning)
-                                .size(LabelSize::Lg),
+                                .size(LabelSize::Lg)
+                                .weight(FontWeight::SEMIBOLD),
                         ),
                     )
                     .child(
@@ -90,8 +91,10 @@ impl RenderOnce for ApprovalDialog {
                             .mb(px(16.0))
                             .px(px(10.0))
                             .py(px(8.0))
-                            .bg(theme.sidebar_bg)
+                            .bg(theme.input_bg)
                             .rounded_md()
+                            .border_1()
+                            .border_color(theme.border)
                             .child(
                                 Label::new(format!("Arguments: {}", req.arguments))
                                     .color(theme.text_subtle)

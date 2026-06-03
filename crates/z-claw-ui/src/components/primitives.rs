@@ -54,30 +54,44 @@ impl RenderOnce for Button {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<ThemeColors>();
 
-        let (bg, text) = match self.variant {
-            ButtonVariant::Primary => (theme.accent, theme.background),
-            ButtonVariant::Secondary => (theme.surface, theme.text),
-            ButtonVariant::Danger => (theme.error, theme.background),
+        let (bg, text, border) = match self.variant {
+            ButtonVariant::Primary => (theme.accent, theme.background, theme.accent),
+            ButtonVariant::Secondary => (theme.overlay, theme.text, theme.border),
+            ButtonVariant::Danger => (theme.error, theme.background, theme.error),
         };
 
-        let (bg, text) = if self.disabled {
-            (theme.text_subtle, theme.text_muted)
+        let (bg, text, border) = if self.disabled {
+            (theme.surface, theme.text_subtle, theme.border)
         } else {
-            (bg, text)
+            (bg, text, border)
         };
 
         let interactive = !self.disabled && self.on_click.is_some();
 
         div()
             .id(ElementId::Name(self.label.clone().into()))
+            .min_h(px(36.0))
             .px(px(14.0))
-            .py(px(6.0))
+            .py(px(8.0))
             .bg(bg)
             .rounded_md()
+            .border_1()
+            .border_color(border)
             .text_color(text)
             .text_sm()
             .font_weight(FontWeight::MEDIUM)
             .when(interactive, |el| el.cursor_pointer())
+            .hover(|el| {
+                if self.disabled {
+                    el
+                } else {
+                    el.bg(match self.variant {
+                        ButtonVariant::Primary => theme.accent,
+                        ButtonVariant::Secondary => theme.overlay,
+                        ButtonVariant::Danger => theme.error,
+                    })
+                }
+            })
             .child(self.label.clone())
             .when_some(self.on_click.filter(|_| !self.disabled), |el, h| {
                 el.on_click(move |e, w, cx| h(e, w, cx))
@@ -135,6 +149,7 @@ impl RenderOnce for Label {
 
         let mut el = div()
             .text_color(self.color.unwrap_or(theme.text))
+            .line_height(px(20.0))
             .child(self.text.clone());
 
         if let Some(w) = self.weight {

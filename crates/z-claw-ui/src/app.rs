@@ -209,12 +209,31 @@ impl AppModel {
         let event_tx = self.event_tx.clone();
         let approval_ch = self.approval_tx.clone();
 
-        cx.spawn(async move |this: WeakEntity<AppModel>, cx: &mut AsyncApp| {
-            let _ = agent.run_turn(&content, &event_tx, Some(approval_ch)).await;
+        let turn = cx.background_spawn(async move {
+            let result = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .map_err(|e| e.to_string())
+                .and_then(|runtime| {
+                    runtime
+                        .block_on(agent.run_turn(&content, &event_tx, Some(approval_ch)))
+                        .map_err(|e| e.to_string())
+                });
+            (agent, result)
+        });
 
+        cx.spawn(async move |this: WeakEntity<AppModel>, cx: &mut AsyncApp| {
+            let (agent, result) = turn.await;
             this.update(cx, |this, cx| {
                 this.agent = Some(agent);
                 this.streaming = false;
+                if let Err(message) = result {
+                    this.messages.push(MessageItem {
+                        role: "system".into(),
+                        content: format!("Error: {message}"),
+                        tool_calls: vec![],
+                    });
+                }
                 cx.notify();
             })
             .ok();

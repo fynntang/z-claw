@@ -34,26 +34,24 @@ impl Default for ThemeColors {
 impl ThemeColors {
     pub fn catppuccin_mocha() -> Self {
         Self {
-            // Backgrounds — Catppuccin Mocha neutral scale
-            background: rgb(0x1e1e2e), // Base
-            sidebar_bg: rgb(0x181825), // Mantle
-            surface: rgb(0x313244),    // Surface0
-            overlay: rgb(0x45475a),    // Surface1
-            input_bg: rgb(0x1e1e2e),   // Base
+            // Dark neutral console scale with restrained Catppuccin accents.
+            background: rgb(0x11111b),
+            sidebar_bg: rgb(0x181825),
+            surface: rgb(0x1e1e2e),
+            overlay: rgb(0x313244),
+            input_bg: rgb(0x181825),
 
-            // Text — Catppuccin Mocha text scale
-            text: rgb(0xcdd6f4),        // Text
-            text_muted: rgb(0xa6adc8),  // Subtext0
-            text_subtle: rgb(0x585b70), // Surface2
+            text: rgb(0xcdd6f4),
+            text_muted: rgb(0xa6adc8),
+            text_subtle: rgb(0x6c7086),
 
             // Borders
-            border: rgb(0x313244), // Surface0
+            border: rgb(0x313244),
 
-            // Accents — Catppuccin Mocha accent colors
-            accent: rgb(0x89b4fa),  // Blue
-            error: rgb(0xf38ba8),   // Red
-            success: rgb(0xa6e3a1), // Green
-            warning: rgb(0xf9e2af), // Yellow
+            accent: rgb(0x89b4fa),
+            error: rgb(0xf38ba8),
+            success: rgb(0xa6e3a1),
+            warning: rgb(0xf9e2af),
         }
     }
 }

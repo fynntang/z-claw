@@ -20,69 +20,90 @@ impl RenderOnce for MessageBubble {
         } else {
             theme.surface
         };
+        let rail_color = if is_user { theme.accent } else { theme.success };
         let role_label = if is_user { "You" } else { "Assistant" };
         let has_tools = !self.message.tool_calls.is_empty();
 
-        let mut base = div().flex().flex_row().mb_2();
-
-        if is_user {
-            base = base.justify_end();
-        } else {
-            base = base.justify_start();
-        }
+        let base = div().flex().flex_row();
 
         base.child(
             div()
                 .flex()
-                .flex_col()
-                .max_w(px(560.0))
+                .flex_row()
+                .w_full()
+                .gap(px(12.0))
                 .child(
-                    div().mb_1().child(
-                        Label::new(role_label)
-                            .color(theme.text_muted)
-                            .size(LabelSize::Xs),
-                    ),
+                    div()
+                        .mt(px(5.0))
+                        .w(px(3.0))
+                        .h(px(28.0))
+                        .rounded_md()
+                        .bg(rail_color),
                 )
-                .child({
-                    let mut bubble = div()
-                        .bg(bubble_bg)
-                        .rounded_lg()
-                        .px(px(14.0))
-                        .py(px(10.0))
-                        .text_color(theme.text)
-                        .text_sm()
-                        .child(render_markdown(&self.message.content, cx));
-
-                    if has_tools {
-                        bubble = bubble.children(self.message.tool_calls.iter().map(|tc| {
-                            let status_color = match tc.status.as_str() {
-                                "ok" => theme.success,
-                                "error" => theme.error,
-                                _ => theme.warning,
-                            };
+                .child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .max_w(px(720.0))
+                        .child(
                             div()
+                                .mb(px(5.0))
                                 .flex()
                                 .flex_row()
-                                .gap_2()
-                                .mt_1()
-                                .pt_1()
-                                .border_t_1()
-                                .border_color(theme.border)
+                                .items_center()
+                                .gap(px(8.0))
                                 .child(
-                                    Label::new(format!("[{}]", tc.status))
-                                        .color(status_color)
-                                        .size(LabelSize::Xs),
-                                )
-                                .child(
-                                    Label::new(format!("{} — {}", tc.name, tc.summary))
+                                    Label::new(role_label)
                                         .color(theme.text_muted)
-                                        .size(LabelSize::Xs),
+                                        .size(LabelSize::Xs)
+                                        .weight(FontWeight::MEDIUM),
                                 )
-                        }));
-                    }
+                                .child(div().w(px(18.0)).h(px(1.0)).bg(theme.border)),
+                        )
+                        .child({
+                            let mut bubble = div()
+                                .bg(bubble_bg)
+                                .rounded_md()
+                                .border_1()
+                                .border_color(theme.border)
+                                .px(px(14.0))
+                                .py(px(11.0))
+                                .text_color(theme.text)
+                                .text_sm()
+                                .child(render_markdown(&self.message.content, cx));
 
-                    bubble
-                }),
+                            if has_tools {
+                                bubble =
+                                    bubble.children(self.message.tool_calls.iter().map(|tc| {
+                                        let status_color = match tc.status.as_str() {
+                                            "ok" => theme.success,
+                                            "error" => theme.error,
+                                            _ => theme.warning,
+                                        };
+                                        div()
+                                            .flex()
+                                            .flex_row()
+                                            .gap_2()
+                                            .mt(px(8.0))
+                                            .pt(px(8.0))
+                                            .border_t_1()
+                                            .border_color(theme.border)
+                                            .child(
+                                                Label::new(format!("[{}]", tc.status))
+                                                    .color(status_color)
+                                                    .size(LabelSize::Xs),
+                                            )
+                                            .child(
+                                                Label::new(format!("{} - {}", tc.name, tc.summary))
+                                                    .color(theme.text_muted)
+                                                    .size(LabelSize::Xs),
+                                            )
+                                    }));
+                            }
+
+                            bubble
+                        }),
+                ),
         )
     }
 }

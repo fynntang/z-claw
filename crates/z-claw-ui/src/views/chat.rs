@@ -15,28 +15,34 @@ impl RenderOnce for ChatView {
         let has_messages = !self.messages.is_empty();
 
         if has_messages {
-            let mut area = div().flex_1().p(px(16.0));
+            let mut area = div()
+                .flex_1()
+                .px(px(28.0))
+                .py(px(22.0))
+                .bg(theme.background);
             area.style().overflow.y = Some(Overflow::Scroll);
             area.children(
                 self.messages
                     .into_iter()
-                    .map(|msg| div().child(MessageBubble { message: msg })),
+                    .map(|msg| div().mb(px(12.0)).child(MessageBubble { message: msg })),
             )
         } else {
             div()
                 .flex_1()
                 .flex()
                 .flex_col()
-                .items_center()
                 .justify_center()
+                .px(px(64.0))
+                .bg(theme.background)
                 .child(
-                    Label::new("z-claw")
-                        .color(theme.text_muted)
-                        .size(LabelSize::Lg),
+                    Label::new("Ready")
+                        .color(theme.text)
+                        .size(LabelSize::Lg)
+                        .weight(FontWeight::SEMIBOLD),
                 )
                 .child(
-                    div().mt(px(4.0)).child(
-                        Label::new("Start a conversation. Type a message and press Send.")
+                    div().mt(px(8.0)).max_w(px(420.0)).child(
+                        Label::new("No messages in this session.")
                             .color(theme.text_subtle)
                             .size(LabelSize::Sm),
                     ),
