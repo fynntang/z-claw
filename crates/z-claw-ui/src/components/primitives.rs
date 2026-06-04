@@ -56,7 +56,7 @@ impl RenderOnce for Button {
 
         let (bg, text, border) = match self.variant {
             ButtonVariant::Primary => (theme.accent, theme.background, theme.accent),
-            ButtonVariant::Secondary => (theme.overlay, theme.text, theme.border),
+            ButtonVariant::Secondary => (theme.surface, theme.text_muted, theme.border),
             ButtonVariant::Danger => (theme.error, theme.background, theme.error),
         };
 

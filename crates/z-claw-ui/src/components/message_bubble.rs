@@ -1,4 +1,4 @@
-use crate::app::MessageItem;
+use crate::app::{MessageItem, ToolCallItem};
 use crate::components::markdown::render_markdown;
 use crate::components::{Label, LabelSize};
 use crate::theme::ThemeColors;
@@ -15,95 +15,159 @@ impl RenderOnce for MessageBubble {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<ThemeColors>();
         let is_user = self.message.role == "user";
-        let bubble_bg = if is_user {
-            theme.overlay
+        let role_label = if is_user { "You" } else { "z-claw" };
+        let avatar_label = if is_user { "U" } else { "Z" };
+        let avatar_bg = if is_user {
+            theme.accent
         } else {
-            theme.surface
+            theme.accent_subtle
         };
-        let rail_color = if is_user { theme.accent } else { theme.success };
-        let role_label = if is_user { "You" } else { "Assistant" };
-        let has_tools = !self.message.tool_calls.is_empty();
 
-        let base = div().flex().flex_row();
+        div()
+            .flex()
+            .flex_row()
+            .gap(px(12.0))
+            .child(
+                div()
+                    .mt(px(2.0))
+                    .size(px(26.0))
+                    .min_w(px(26.0))
+                    .rounded_sm()
+                    .bg(avatar_bg)
+                    .border_1()
+                    .border_color(if is_user {
+                        theme.accent
+                    } else {
+                        theme.border_strong
+                    })
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .text_size(px(12.0))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(if is_user {
+                        theme.background
+                    } else {
+                        theme.accent_text
+                    })
+                    .child(avatar_label),
+            )
+            .child(
+                div()
+                    .flex_1()
+                    .min_w(px(0.0))
+                    .flex()
+                    .flex_col()
+                    .child(message_header(role_label, is_user, theme))
+                    .child(
+                        div()
+                            .text_sm()
+                            .line_height(px(22.0))
+                            .text_color(theme.text_muted)
+                            .child(render_markdown(&self.message.content, cx)),
+                    )
+                    .children(
+                        self.message
+                            .tool_calls
+                            .iter()
+                            .map(|tool_call| tool_block(tool_call, theme)),
+                    ),
+            )
+    }
+}
 
-        base.child(
+fn message_header(
+    role_label: &'static str,
+    is_user: bool,
+    theme: &ThemeColors,
+) -> impl IntoElement {
+    div()
+        .mb(px(3.0))
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(8.0))
+        .child(
+            Label::new(role_label)
+                .color(theme.text)
+                .size(LabelSize::Sm)
+                .weight(FontWeight::BOLD),
+        )
+        .child(
+            Label::new("now")
+                .color(theme.text_subtle)
+                .size(LabelSize::Xs),
+        )
+        .when(!is_user, |el| {
+            el.child(
+                div()
+                    .px(px(5.0))
+                    .py(px(1.0))
+                    .rounded_sm()
+                    .border_1()
+                    .border_color(theme.border)
+                    .bg(theme.sidebar_bg)
+                    .text_size(px(9.0))
+                    .text_color(theme.text_subtle)
+                    .child("local/llama3"),
+            )
+        })
+}
+
+fn tool_block(tool_call: &ToolCallItem, theme: &ThemeColors) -> impl IntoElement {
+    let (status_bg, status_fg, status_label) = match tool_call.status.as_str() {
+        "ok" | "success" => (theme.success_bg, theme.success, "success"),
+        "error" => (theme.error_bg, theme.error, "error"),
+        "running" => (theme.info_bg, theme.info, "running"),
+        _ => (theme.warning_bg, theme.warning, "pending"),
+    };
+
+    div()
+        .mt(px(9.0))
+        .rounded_sm()
+        .border_1()
+        .border_color(theme.border)
+        .bg(theme.sidebar_bg)
+        .child(
             div()
                 .flex()
                 .flex_row()
-                .w_full()
-                .gap(px(12.0))
+                .items_center()
+                .gap(px(8.0))
+                .px(px(12.0))
+                .py(px(7.0))
+                .border_b_1()
+                .border_color(theme.border)
+                .bg(theme.surface)
                 .child(
                     div()
-                        .mt(px(5.0))
-                        .w(px(3.0))
-                        .h(px(28.0))
-                        .rounded_md()
-                        .bg(rail_color),
+                        .text_size(px(12.0))
+                        .text_color(theme.accent_text)
+                        .child("◇"),
+                )
+                .child(
+                    Label::new(tool_call.name.clone())
+                        .color(theme.text)
+                        .size(LabelSize::Xs)
+                        .weight(FontWeight::BOLD),
                 )
                 .child(
                     div()
-                        .flex()
-                        .flex_col()
-                        .max_w(px(720.0))
-                        .child(
-                            div()
-                                .mb(px(5.0))
-                                .flex()
-                                .flex_row()
-                                .items_center()
-                                .gap(px(8.0))
-                                .child(
-                                    Label::new(role_label)
-                                        .color(theme.text_muted)
-                                        .size(LabelSize::Xs)
-                                        .weight(FontWeight::MEDIUM),
-                                )
-                                .child(div().w(px(18.0)).h(px(1.0)).bg(theme.border)),
-                        )
-                        .child({
-                            let mut bubble = div()
-                                .bg(bubble_bg)
-                                .rounded_md()
-                                .border_1()
-                                .border_color(theme.border)
-                                .px(px(14.0))
-                                .py(px(11.0))
-                                .text_color(theme.text)
-                                .text_sm()
-                                .child(render_markdown(&self.message.content, cx));
-
-                            if has_tools {
-                                bubble =
-                                    bubble.children(self.message.tool_calls.iter().map(|tc| {
-                                        let status_color = match tc.status.as_str() {
-                                            "ok" => theme.success,
-                                            "error" => theme.error,
-                                            _ => theme.warning,
-                                        };
-                                        div()
-                                            .flex()
-                                            .flex_row()
-                                            .gap_2()
-                                            .mt(px(8.0))
-                                            .pt(px(8.0))
-                                            .border_t_1()
-                                            .border_color(theme.border)
-                                            .child(
-                                                Label::new(format!("[{}]", tc.status))
-                                                    .color(status_color)
-                                                    .size(LabelSize::Xs),
-                                            )
-                                            .child(
-                                                Label::new(format!("{} - {}", tc.name, tc.summary))
-                                                    .color(theme.text_muted)
-                                                    .size(LabelSize::Xs),
-                                            )
-                                    }));
-                            }
-
-                            bubble
-                        }),
+                        .flex_1()
+                        .text_size(px(10.0))
+                        .text_color(theme.text_subtle)
+                        .child(tool_call.summary.clone()),
+                )
+                .child(
+                    div()
+                        .px(px(6.0))
+                        .py(px(1.0))
+                        .rounded_full()
+                        .bg(status_bg)
+                        .text_size(px(9.0))
+                        .font_weight(FontWeight::BOLD)
+                        .text_color(status_fg)
+                        .child(status_label),
                 ),
         )
-    }
 }

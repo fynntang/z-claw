@@ -207,6 +207,7 @@ impl Render for MainWindow {
         let show_settings = self.show_settings;
         let has_text = !self.input_text.trim().is_empty();
         let can_send = has_text && !streaming;
+        let current_session_short = current_session_id.chars().take(8).collect::<String>();
 
         let mut root = div()
             .flex()
@@ -277,30 +278,50 @@ impl Render for MainWindow {
                             .bg(theme.background)
                             .child(
                                 div()
-                                    .h(px(58.0))
+                                    .h(px(40.0))
                                     .flex()
                                     .flex_row()
                                     .items_center()
                                     .justify_between()
-                                    .px(px(24.0))
+                                    .px(px(14.0))
+                                    .gap(px(8.0))
                                     .border_b_1()
                                     .border_color(theme.border)
                                     .bg(theme.background)
                                     .child(
                                         div()
                                             .flex()
-                                            .flex_col()
+                                            .flex_row()
+                                            .items_center()
+                                            .gap(px(8.0))
                                             .child(
                                                 div()
-                                                    .text_sm()
+                                                    .max_w(px(220.0))
+                                                    .text_size(px(12.0))
                                                     .text_color(theme.text)
-                                                    .font_weight(FontWeight::SEMIBOLD)
+                                                    .font_weight(FontWeight::BOLD)
                                                     .child("Workspace"),
                                             )
                                             .child(
                                                 div()
-                                                    .text_xs()
+                                                    .px(px(6.0))
+                                                    .py(px(2.0))
+                                                    .rounded_sm()
+                                                    .border_1()
+                                                    .border_color(theme.border)
+                                                    .bg(theme.sidebar_bg)
+                                                    .text_size(px(10.0))
                                                     .text_color(theme.text_subtle)
+                                                    .child(current_session_short.clone()),
+                                            )
+                                            .child(
+                                                div()
+                                                    .text_size(px(11.0))
+                                                    .text_color(if streaming {
+                                                        theme.info
+                                                    } else {
+                                                        theme.text_subtle
+                                                    })
                                                     .child(if streaming {
                                                         "Responding"
                                                     } else {
@@ -309,91 +330,149 @@ impl Render for MainWindow {
                                             ),
                                     )
                                     .child(
-                                        div().flex().flex_row().items_center().gap(px(8.0)).child(
-                                            Button::new("Settings")
-                                                .variant(ButtonVariant::Secondary)
-                                                .on_click({
-                                                    let entity = cx.entity();
-                                                    move |_, _, cx| {
-                                                        entity.update(cx, |this, cx| {
-                                                            this.show_settings = true;
-                                                            this.editing_field = None;
-                                                            cx.notify();
-                                                        });
-                                                        cx.stop_propagation();
-                                                    }
-                                                }),
-                                        ),
+                                        div()
+                                            .flex()
+                                            .flex_row()
+                                            .items_center()
+                                            .gap(px(6.0))
+                                            .child(toolbar_pill("llama3", &theme))
+                                            .child(toolbar_pill("18% ctx", &theme))
+                                            .child(
+                                                Button::new("Settings")
+                                                    .variant(ButtonVariant::Secondary)
+                                                    .on_click({
+                                                        let entity = cx.entity();
+                                                        move |_, _, cx| {
+                                                            entity.update(cx, |this, cx| {
+                                                                this.show_settings = true;
+                                                                this.editing_field = None;
+                                                                cx.notify();
+                                                            });
+                                                            cx.stop_propagation();
+                                                        }
+                                                    }),
+                                            ),
                                     ),
                             )
                             .child(ChatView { messages })
                             .child(
                                 div()
-                                    .px(px(24.0))
-                                    .pt(px(12.0))
-                                    .pb(px(18.0))
+                                    .px(px(20.0))
+                                    .py(px(12.0))
                                     .bg(theme.background)
                                     .border_t_1()
                                     .border_color(theme.border)
                                     .child(
                                         div()
+                                            .mx_auto()
+                                            .max_w(px(860.0))
+                                            .w_full()
                                             .flex()
-                                            .flex_row()
-                                            .items_center()
-                                            .gap(px(10.0))
-                                            .min_h(px(52.0))
-                                            .px(px(10.0))
-                                            .py(px(8.0))
-                                            .bg(theme.input_bg)
-                                            .rounded_md()
-                                            .border_1()
-                                            .border_color(if self.editing_field.is_none() {
-                                                theme.border
-                                            } else {
-                                                theme.accent
-                                            })
+                                            .flex_col()
+                                            .gap(px(6.0))
                                             .child(
                                                 div()
-                                                    .flex_1()
-                                                    .min_h(px(32.0))
-                                                    .px(px(8.0))
-                                                    .py(px(6.0))
-                                                    .text_sm()
-                                                    .cursor_text()
-                                                    .track_focus(&self.focus_handle)
-                                                    .on_mouse_down(MouseButton::Left, {
-                                                        let focus = self.focus_handle.clone();
-                                                        move |_, window, cx| {
-                                                            focus.focus(window, cx);
-                                                            cx.stop_propagation();
-                                                        }
-                                                    })
-                                                    .child(ComposerInput {
-                                                        entity: cx.entity(),
-                                                        focus_handle: self.focus_handle.clone(),
-                                                        text: self.input_text.clone(),
-                                                        marked_range: self.marked_range.clone(),
-                                                        placeholder: "Ask z-claw".into(),
-                                                        theme,
-                                                    }),
+                                                    .flex()
+                                                    .flex_row()
+                                                    .items_end()
+                                                    .gap(px(8.0))
+                                                    .child(
+                                                        div()
+                                                            .flex_1()
+                                                            .min_h(px(38.0))
+                                                            .px(px(10.0))
+                                                            .py(px(6.0))
+                                                            .bg(theme.sidebar_bg)
+                                                            .rounded_md()
+                                                            .border_1()
+                                                            .border_color(
+                                                                if self.editing_field.is_none() {
+                                                                    theme.border
+                                                                } else {
+                                                                    theme.accent
+                                                                },
+                                                            )
+                                                            .flex()
+                                                            .flex_row()
+                                                            .items_center()
+                                                            .gap(px(8.0))
+                                                            .child(input_icon_button("file", &theme))
+                                                            .child(input_icon_button("mode", &theme))
+                                                            .child(
+                                                                div()
+                                                                    .flex_1()
+                                                                    .min_h(px(28.0))
+                                                                    .px(px(4.0))
+                                                                    .py(px(4.0))
+                                                                    .text_sm()
+                                                                    .cursor_text()
+                                                                    .track_focus(&self.focus_handle)
+                                                                    .on_mouse_down(
+                                                                        MouseButton::Left,
+                                                                        {
+                                                                            let focus =
+                                                                                self.focus_handle
+                                                                                    .clone();
+                                                                            move |_, window, cx| {
+                                                                                focus.focus(
+                                                                                    window, cx,
+                                                                                );
+                                                                                cx.stop_propagation();
+                                                                            }
+                                                                        },
+                                                                    )
+                                                                    .child(ComposerInput {
+                                                                        entity: cx.entity(),
+                                                                        focus_handle: self
+                                                                            .focus_handle
+                                                                            .clone(),
+                                                                        text: self
+                                                                            .input_text
+                                                                            .clone(),
+                                                                        marked_range: self
+                                                                            .marked_range
+                                                                            .clone(),
+                                                                        placeholder: "Ask z-claw"
+                                                                            .into(),
+                                                                        theme,
+                                                                    }),
+                                                            ),
+                                                    )
+                                                    .child(
+                                                        Button::new("Send")
+                                                            .variant(if can_send {
+                                                                ButtonVariant::Primary
+                                                            } else {
+                                                                ButtonVariant::Secondary
+                                                            })
+                                                            .disabled(!can_send)
+                                                            .on_click({
+                                                                let entity = cx.entity();
+                                                                move |_, window, cx| {
+                                                                    entity.update(
+                                                                        cx,
+                                                                        |this, cx| {
+                                                                            this.submit(
+                                                                                window, cx,
+                                                                            )
+                                                                        },
+                                                                    );
+                                                                    cx.stop_propagation();
+                                                                }
+                                                            }),
+                                                    ),
                                             )
                                             .child(
-                                                Button::new("Send")
-                                                    .variant(if can_send {
-                                                        ButtonVariant::Primary
-                                                    } else {
-                                                        ButtonVariant::Secondary
-                                                    })
-                                                    .disabled(!can_send)
-                                                    .on_click({
-                                                        let entity = cx.entity();
-                                                        move |_, window, cx| {
-                                                            entity.update(cx, |this, cx| {
-                                                                this.submit(window, cx)
-                                                            });
-                                                            cx.stop_propagation();
-                                                        }
-                                                    }),
+                                                div()
+                                                    .flex()
+                                                    .flex_row()
+                                                    .gap(px(14.0))
+                                                    .pl(px(4.0))
+                                                    .text_size(px(10.0))
+                                                    .text_color(theme.text_subtle)
+                                                    .child("Ctrl+Enter send")
+                                                    .child("Esc cancel")
+                                                    .child("Tools require approval"),
                                             ),
                                     ),
                             ),
@@ -443,6 +522,17 @@ impl Render for MainWindow {
                             });
                         }
                     })
+                    .on_save({
+                        let entity = cx.entity();
+                        move |settings, cx| {
+                            entity.update(cx, |this: &mut MainWindow, cx| {
+                                this.current_settings = settings;
+                                this.show_settings = false;
+                                this.editing_field = None;
+                                cx.notify();
+                            });
+                        }
+                    })
                     .on_close({
                         let entity = cx.entity();
                         move |_, cx| {
@@ -458,6 +548,37 @@ impl Render for MainWindow {
 
         root
     }
+}
+
+fn toolbar_pill(label: &'static str, theme: &ThemeColors) -> impl IntoElement {
+    div()
+        .h(px(26.0))
+        .px(px(9.0))
+        .flex()
+        .items_center()
+        .rounded_sm()
+        .border_1()
+        .border_color(theme.border)
+        .bg(theme.sidebar_bg)
+        .text_size(px(11.0))
+        .font_weight(FontWeight::SEMIBOLD)
+        .text_color(theme.text_muted)
+        .hover(|el| el.border_color(theme.border_strong).text_color(theme.text))
+        .child(label)
+}
+
+fn input_icon_button(label: &'static str, theme: &ThemeColors) -> impl IntoElement {
+    div()
+        .w(px(26.0))
+        .h(px(26.0))
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded_sm()
+        .text_size(px(10.0))
+        .text_color(theme.text_muted)
+        .hover(|el| el.bg(theme.overlay).text_color(theme.text))
+        .child(label)
 }
 
 struct ComposerInput {
