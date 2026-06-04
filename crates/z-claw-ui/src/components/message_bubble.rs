@@ -94,9 +94,17 @@ fn message_header(
                 .weight(FontWeight::BOLD),
         )
         .child(
-            Label::new("now")
-                .color(theme.text_subtle)
-                .size(LabelSize::Xs),
+            div()
+                .px(px(5.0))
+                .py(px(1.0))
+                .rounded_sm()
+                .border_1()
+                .border_color(theme.border)
+                .bg(theme.sidebar_bg)
+                .text_size(px(9.0))
+                .font_weight(FontWeight::SEMIBOLD)
+                .text_color(theme.text_subtle)
+                .child(if is_user { "request" } else { "response" }),
         )
         .when(!is_user, |el| {
             el.child(
@@ -141,9 +149,14 @@ fn tool_block(tool_call: &ToolCallItem, theme: &ThemeColors) -> impl IntoElement
                 .bg(theme.surface)
                 .child(
                     div()
-                        .text_size(px(12.0))
+                        .px(px(5.0))
+                        .py(px(1.0))
+                        .rounded_sm()
+                        .bg(theme.accent_subtle)
+                        .text_size(px(9.0))
+                        .font_weight(FontWeight::BOLD)
                         .text_color(theme.accent_text)
-                        .child("◇"),
+                        .child("tool"),
                 )
                 .child(
                     Label::new(tool_call.name.clone())

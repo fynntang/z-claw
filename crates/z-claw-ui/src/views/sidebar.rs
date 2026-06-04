@@ -63,11 +63,7 @@ impl RenderOnce for Sidebar {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.global::<ThemeColors>();
         let session_count = self.sessions.len();
-        let active_index = self
-            .sessions
-            .iter()
-            .position(|session| self.active_session_id.as_ref() == Some(&session.id))
-            .unwrap_or_default();
+        let active_session_id = self.active_session_id.clone().unwrap_or_default();
 
         div()
             .flex()
@@ -85,16 +81,14 @@ impl RenderOnce for Sidebar {
                     .flex_1()
                     .px(px(8.0))
                     .py(px(2.0))
-                    .children(self.sessions.iter().enumerate().map(|(index, session)| {
+                    .children(self.sessions.iter().map(|session| {
                         let session_id = session.id.clone();
                         let handler = self.on_select_session.clone();
                         let is_active = self.active_session_id.as_ref() == Some(&session.id);
                         let status = if is_active {
-                            SessionStatus::Running
-                        } else if index % 4 == 0 {
-                            SessionStatus::Done
+                            SessionStatus::Active
                         } else {
-                            SessionStatus::Idle
+                            SessionStatus::Recent
                         };
 
                         session_row(session, status, is_active, theme).on_mouse_down(
@@ -121,7 +115,7 @@ impl RenderOnce for Sidebar {
                         )
                     }),
             )
-            .child(sidebar_stats(session_count, active_index, theme))
+            .child(sidebar_stats(session_count, &active_session_id, theme))
             .child(sidebar_footer(theme))
     }
 }
@@ -185,6 +179,7 @@ fn sidebar_header(
         .child(
             Button::new("+ New Session")
                 .variant(ButtonVariant::Secondary)
+                .compact()
                 .on_click({
                     let handler = on_new_session.clone();
                     move |event, window, cx| {
@@ -213,10 +208,10 @@ fn sidebar_header(
                         .bg(theme.background)
                         .text_size(px(11.0))
                         .text_color(theme.text_subtle)
-                        .child("Search sessions"),
+                        .child("Filter sessions"),
                 )
                 .child(filter_badge("all", true, theme))
-                .child(filter_badge("run", false, theme)),
+                .child(filter_badge("open", false, theme)),
         )
 }
 
@@ -257,9 +252,8 @@ fn section_label(label: &'static str, theme: &ThemeColors) -> impl IntoElement {
 
 #[derive(Clone, Copy)]
 enum SessionStatus {
-    Running,
-    Done,
-    Idle,
+    Active,
+    Recent,
 }
 
 fn session_row(
@@ -270,14 +264,12 @@ fn session_row(
 ) -> Div {
     let short_id = session.id.chars().take(8).collect::<String>();
     let status_color = match status {
-        SessionStatus::Running => theme.accent,
-        SessionStatus::Done => theme.success,
-        SessionStatus::Idle => theme.text_subtle,
+        SessionStatus::Active => theme.accent,
+        SessionStatus::Recent => theme.text_subtle,
     };
     let status_label = match status {
-        SessionStatus::Running => "wip",
-        SessionStatus::Done => "done",
-        SessionStatus::Idle => "idle",
+        SessionStatus::Active => "active",
+        SessionStatus::Recent => "recent",
     };
 
     div()
@@ -342,16 +334,14 @@ fn session_row(
                 .py(px(1.0))
                 .rounded_full()
                 .bg(match status {
-                    SessionStatus::Running => theme.accent_subtle,
-                    SessionStatus::Done => theme.success_bg,
-                    SessionStatus::Idle => theme.surface,
+                    SessionStatus::Active => theme.accent_subtle,
+                    SessionStatus::Recent => theme.surface,
                 })
                 .text_size(px(9.0))
                 .font_weight(FontWeight::BOLD)
                 .text_color(match status {
-                    SessionStatus::Running => theme.accent_text,
-                    SessionStatus::Done => theme.success,
-                    SessionStatus::Idle => theme.text_subtle,
+                    SessionStatus::Active => theme.accent_text,
+                    SessionStatus::Recent => theme.text_subtle,
                 })
                 .child(status_label),
         )
@@ -376,14 +366,14 @@ fn session_age(updated_ms: i64) -> String {
 
 fn sidebar_stats(
     session_count: usize,
-    active_index: usize,
+    active_session_id: &str,
     theme: &ThemeColors,
 ) -> impl IntoElement {
-    let progress = ((session_count.min(12) as f32) / 12.0 * 100.0).max(8.0);
+    let short_id = active_session_id.chars().take(8).collect::<String>();
     div()
         .flex()
         .flex_col()
-        .gap(px(6.0))
+        .gap(px(8.0))
         .px(px(12.0))
         .py(px(10.0))
         .border_t_1()
@@ -393,9 +383,9 @@ fn sidebar_stats(
                 .flex()
                 .flex_row()
                 .items_center()
-                .gap(px(6.0))
+                .justify_between()
                 .child(
-                    Label::new("workspace")
+                    Label::new("Workspace")
                         .color(theme.text_subtle)
                         .size(LabelSize::Xs),
                 )
@@ -408,33 +398,49 @@ fn sidebar_stats(
         )
         .child(
             div()
-                .h(px(3.0))
-                .w_full()
-                .rounded_full()
-                .bg(theme.border)
-                .child(
-                    div()
-                        .h_full()
-                        .w(relative(progress / 100.0))
-                        .rounded_full()
-                        .bg(theme.accent),
-                ),
+                .rounded_sm()
+                .border_1()
+                .border_color(theme.border)
+                .bg(theme.background)
+                .px(px(9.0))
+                .py(px(7.0))
+                .flex()
+                .flex_col()
+                .gap(px(4.0))
+                .child(stat_row(
+                    "Active",
+                    if short_id.is_empty() {
+                        "none".into()
+                    } else {
+                        short_id.into()
+                    },
+                    theme,
+                    theme.text_muted,
+                ))
+                .child(stat_row("Runtime", "ready".into(), theme, theme.success)),
+        )
+}
+
+fn stat_row(
+    label: &'static str,
+    value: SharedString,
+    theme: &ThemeColors,
+    value_color: Rgba,
+) -> impl IntoElement {
+    div()
+        .flex()
+        .flex_row()
+        .justify_between()
+        .child(
+            Label::new(label)
+                .color(theme.text_subtle)
+                .size(LabelSize::Xs),
         )
         .child(
-            div()
-                .flex()
-                .flex_row()
-                .gap(px(2.0))
-                .children((0..14).map(|i| {
-                    let intensity = (i + active_index) % 5;
-                    div().flex_1().h(px(8.0)).rounded_sm().bg(match intensity {
-                        0 => theme.border,
-                        1 => theme.info_bg,
-                        2 => theme.accent_subtle,
-                        3 => theme.accent,
-                        _ => theme.accent_hover,
-                    })
-                })),
+            Label::new(value)
+                .color(value_color)
+                .size(LabelSize::Xs)
+                .weight(FontWeight::SEMIBOLD),
         )
 }
 
@@ -447,12 +453,16 @@ fn sidebar_footer(theme: &ThemeColors) -> impl IntoElement {
         .py(px(6.0))
         .border_t_1()
         .border_color(theme.border)
-        .child(footer_item("Agents", "A", theme))
-        .child(footer_item("Skills", "S", theme))
-        .child(footer_item("Runtime ready", "●", theme))
+        .child(footer_item("Approval guarded", "SEC", theme, theme.warning))
+        .child(footer_item("Runtime ready", "OK", theme, theme.success))
 }
 
-fn footer_item(label: &'static str, icon: &'static str, theme: &ThemeColors) -> impl IntoElement {
+fn footer_item(
+    label: &'static str,
+    icon: &'static str,
+    theme: &ThemeColors,
+    icon_color: Rgba,
+) -> impl IntoElement {
     div()
         .flex()
         .flex_row()
@@ -466,13 +476,11 @@ fn footer_item(label: &'static str, icon: &'static str, theme: &ThemeColors) -> 
         .hover(|el| el.bg(theme.overlay).text_color(theme.text))
         .child(
             div()
-                .w(px(16.0))
+                .w(px(24.0))
                 .text_align(TextAlign::Center)
-                .text_color(if label == "Runtime ready" {
-                    theme.success
-                } else {
-                    theme.text_subtle
-                })
+                .text_size(px(9.0))
+                .font_weight(FontWeight::BOLD)
+                .text_color(icon_color)
                 .child(icon),
         )
         .child(label)

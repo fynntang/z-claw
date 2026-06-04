@@ -208,6 +208,8 @@ impl Render for MainWindow {
         let has_text = !self.input_text.trim().is_empty();
         let can_send = has_text && !streaming;
         let current_session_short = current_session_id.chars().take(8).collect::<String>();
+        let provider_label = self.current_settings.provider_type.clone();
+        let model_label = self.current_settings.model.clone();
 
         let mut root = div()
             .flex()
@@ -335,8 +337,9 @@ impl Render for MainWindow {
                                             .flex_row()
                                             .items_center()
                                             .gap(px(6.0))
-                                            .child(toolbar_pill("llama3", &theme))
-                                            .child(toolbar_pill("18% ctx", &theme))
+                                            .child(toolbar_pill(provider_label, &theme))
+                                            .child(toolbar_pill(model_label, &theme))
+                                            .child(toolbar_pill("approval on", &theme))
                                             .child(
                                                 Button::new("Settings")
                                                     .variant(ButtonVariant::Secondary)
@@ -396,8 +399,7 @@ impl Render for MainWindow {
                                                             .flex_row()
                                                             .items_center()
                                                             .gap(px(8.0))
-                                                            .child(input_icon_button("file", &theme))
-                                                            .child(input_icon_button("mode", &theme))
+                                                            .child(composer_badge("chat", &theme))
                                                             .child(
                                                                 div()
                                                                     .flex_1()
@@ -470,9 +472,9 @@ impl Render for MainWindow {
                                                     .pl(px(4.0))
                                                     .text_size(px(10.0))
                                                     .text_color(theme.text_subtle)
-                                                    .child("Ctrl+Enter send")
-                                                    .child("Esc cancel")
-                                                    .child("Tools require approval"),
+                                                    .child("Enter sends")
+                                                    .child("Approval prompts appear inline")
+                                                    .child("Local model by default"),
                                             ),
                                     ),
                             ),
@@ -550,7 +552,7 @@ impl Render for MainWindow {
     }
 }
 
-fn toolbar_pill(label: &'static str, theme: &ThemeColors) -> impl IntoElement {
+fn toolbar_pill(label: impl Into<SharedString>, theme: &ThemeColors) -> impl IntoElement {
     div()
         .h(px(26.0))
         .px(px(9.0))
@@ -564,20 +566,23 @@ fn toolbar_pill(label: &'static str, theme: &ThemeColors) -> impl IntoElement {
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme.text_muted)
         .hover(|el| el.border_color(theme.border_strong).text_color(theme.text))
-        .child(label)
+        .child(label.into())
 }
 
-fn input_icon_button(label: &'static str, theme: &ThemeColors) -> impl IntoElement {
+fn composer_badge(label: &'static str, theme: &ThemeColors) -> impl IntoElement {
     div()
-        .w(px(26.0))
+        .px(px(7.0))
         .h(px(26.0))
         .flex()
         .items_center()
         .justify_center()
         .rounded_sm()
+        .border_1()
+        .border_color(theme.border)
+        .bg(theme.surface)
         .text_size(px(10.0))
+        .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme.text_muted)
-        .hover(|el| el.bg(theme.overlay).text_color(theme.text))
         .child(label)
 }
 

@@ -19,6 +19,7 @@ pub struct Button {
     variant: ButtonVariant,
     on_click: Option<Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>>,
     disabled: bool,
+    compact: bool,
 }
 
 impl Button {
@@ -28,6 +29,7 @@ impl Button {
             variant: ButtonVariant::Primary,
             on_click: None,
             disabled: false,
+            compact: false,
         }
     }
 
@@ -46,6 +48,11 @@ impl Button {
 
     pub fn disabled(mut self, d: bool) -> Self {
         self.disabled = d;
+        self
+    }
+
+    pub fn compact(mut self) -> Self {
+        self.compact = true;
         self
     }
 }
@@ -70,11 +77,11 @@ impl RenderOnce for Button {
 
         div()
             .id(ElementId::Name(self.label.clone().into()))
-            .min_h(px(36.0))
-            .px(px(14.0))
-            .py(px(8.0))
+            .min_h(if self.compact { px(28.0) } else { px(36.0) })
+            .px(if self.compact { px(10.0) } else { px(14.0) })
+            .py(if self.compact { px(5.0) } else { px(8.0) })
             .bg(bg)
-            .rounded_md()
+            .rounded_sm()
             .border_1()
             .border_color(border)
             .text_color(text)

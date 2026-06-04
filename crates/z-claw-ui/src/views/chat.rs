@@ -74,6 +74,15 @@ impl RenderOnce for ChatView {
                         )
                         .child(
                             div()
+                                .mb(px(8.0))
+                                .w_full()
+                                .text_size(px(10.0))
+                                .font_weight(FontWeight::BOLD)
+                                .text_color(theme.text_subtle)
+                                .child("Suggested starting points"),
+                        )
+                        .child(
+                            div()
                                 .grid()
                                 .grid_cols(2)
                                 .gap(px(8.0))
@@ -100,7 +109,6 @@ fn empty_card(
         .border_1()
         .border_color(theme.border)
         .bg(theme.sidebar_bg)
-        .hover(|el| el.bg(theme.overlay).border_color(theme.border_strong))
         .child(
             Label::new(title)
                 .color(theme.text)
